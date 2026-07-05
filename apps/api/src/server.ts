@@ -1,27 +1,42 @@
 import Fastify from "fastify";
+import websocket from "@fastify/websocket";
 import { config, PROJECT_NAME_RE } from "@mini-vercel/shared";
 import {
   createDeployment,
   createProject,
+  findRollbackTarget,
   getBuildLogs,
   getDeployment,
+  getLiveDeployment,
   getProjectByName,
   listDeployments,
   listProjects,
 } from "@mini-vercel/db";
 import { buildQueue } from "./queue.js";
+import { logStreamRoutes } from "./logstream.js";
+import { webhookRoutes } from "./webhooks.js";
 
 const app = Fastify({ logger: true });
 
 // The control plane can start containers on this box — treat it as root.
-// Everything except the health check requires the bearer token.
+// Everything except the health check requires the bearer token. The GitHub
+// webhook is also exempt: it authenticates with its own HMAC signature.
 app.addHook("onRequest", async (req, reply) => {
-  if (req.url === "/health") return;
-  const auth = req.headers.authorization;
-  if (auth !== `Bearer ${config.apiToken}`) {
-    return reply.code(401).send({ error: "unauthorized" });
+  const route = req.url.split("?")[0] ?? req.url;
+  if (route === "/health" || route === "/api/webhooks/github") return;
+  if (req.headers.authorization === `Bearer ${config.apiToken}`) return;
+  // Browsers can't set headers on a WebSocket handshake, so the log stream
+  // also accepts the token as a ?token= query parameter.
+  if (route.endsWith("/logs/stream")) {
+    const token = new URL(req.url, "http://x").searchParams.get("token");
+    if (token === config.apiToken) return;
   }
+  return reply.code(401).send({ error: "unauthorized" });
 });
+
+app.register(websocket);
+app.register(logStreamRoutes);
+app.register(webhookRoutes);
 
 app.get("/health", async () => ({ ok: true }));
 
@@ -61,6 +76,36 @@ app.post<{ Params: { name: string } }>(
       return reply.code(404).send({ error: "project not found" });
     }
     const deployment = await createDeployment(project.id);
+    await buildQueue.add(
+      "build",
+      { deploymentId: deployment.id },
+      { jobId: deployment.id },
+    );
+    return reply.code(201).send(deployment);
+  },
+);
+
+// Rollback: re-deploy the newest previously-live image of a different commit.
+// The row is created with commit_sha/image_tag pre-filled, which tells the
+// worker to skip clone+build and go straight to run → readiness → swap.
+app.post<{ Params: { name: string } }>(
+  "/api/projects/:name/rollback",
+  async (req, reply) => {
+    const project = await getProjectByName(req.params.name);
+    if (!project) {
+      return reply.code(404).send({ error: "project not found" });
+    }
+    const live = await getLiveDeployment(project.id);
+    const target = await findRollbackTarget(project.id, live?.commit_sha ?? null);
+    if (!target) {
+      return reply.code(404).send({
+        error: `nothing to roll back to — '${project.name}' has no previously-live deployment of a different commit`,
+      });
+    }
+    const deployment = await createDeployment(project.id, {
+      commitSha: target.commit_sha,
+      imageTag: target.image_tag,
+    });
     await buildQueue.add(
       "build",
       { deploymentId: deployment.id },

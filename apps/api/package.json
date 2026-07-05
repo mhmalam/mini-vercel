@@ -8,6 +8,7 @@
     "start": "tsx src/server.ts"
   },
   "dependencies": {
+    "@fastify/websocket": "^11.2.0",
     "@mini-vercel/db": "*",
     "@mini-vercel/shared": "*",
     "bullmq": "^5.34.0",

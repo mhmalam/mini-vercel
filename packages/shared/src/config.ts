@@ -11,10 +11,12 @@ const repoRoot = path.resolve(
   "..",
 );
 
-// Best-effort .env loading from the current working directory (run services
-// from the repo root). Missing file is fine — defaults below cover local dev.
+// Best-effort .env loading from the repo root — npm runs workspace scripts
+// with cwd inside apps/*, so a cwd-relative load would miss the file.
+// Missing file is fine — defaults below cover local dev. Already-set
+// environment variables win over the file.
 try {
-  process.loadEnvFile();
+  process.loadEnvFile(path.join(repoRoot, ".env"));
 } catch {
   /* no .env present */
 }
@@ -32,6 +34,9 @@ export const config = {
   redisUrl: env("REDIS_URL", "redis://127.0.0.1:6379"),
   apiPort: Number(env("API_PORT", "4000")),
   apiToken: env("DEPLOY_API_TOKEN", "dev-token-change-me"),
+  /** HMAC secret for GitHub push webhooks. Empty (the default) disables the
+   *  webhook endpoint entirely. */
+  webhookSecret: env("GITHUB_WEBHOOK_SECRET", ""),
   buildTimeoutMs: Number(env("BUILD_TIMEOUT_MS", String(10 * 60 * 1000))),
   buildRoot: env("BUILD_ROOT", path.join(os.tmpdir(), "mini-vercel-builds")),
   /** How many images to keep per project when pruning after a build. */

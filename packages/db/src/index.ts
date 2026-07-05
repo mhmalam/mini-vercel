@@ -48,14 +48,58 @@ export async function listProjects(): Promise<Project[]> {
 
 // ---------- deployments ----------
 
-export async function createDeployment(projectId: string): Promise<Deployment> {
+/**
+ * Create a queued deployment. A rollback pre-fills commit_sha and image_tag
+ * from the deployment it re-deploys — the worker skips clone+build whenever
+ * image_tag is already set.
+ */
+export async function createDeployment(
+  projectId: string,
+  prefill: { commitSha?: string | null; imageTag?: string | null } = {},
+): Promise<Deployment> {
   const { rows } = await pool.query<Deployment>(
-    `insert into deployments (project_id, status)
-     values ($1, 'queued')
+    `insert into deployments (project_id, status, commit_sha, image_tag)
+     values ($1, 'queued', $2, $3)
      returning *`,
-    [projectId],
+    [projectId, prefill.commitSha ?? null, prefill.imageTag ?? null],
   );
   return rows[0]!;
+}
+
+export async function getLiveDeployment(
+  projectId: string,
+): Promise<Deployment | null> {
+  const { rows } = await pool.query<Deployment>(
+    `select * from deployments
+     where project_id = $1 and status = 'live'
+     order by created_at desc limit 1`,
+    [projectId],
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * The deployment a rollback would re-deploy: the newest previously-live
+ * deployment whose commit differs from the currently-live one. Same-commit
+ * deployments are skipped — their images are identical, so "rolling back"
+ * to one would change nothing (and repeated rollbacks would ping-pong
+ * between the last two tags without ever reaching an older version).
+ */
+export async function findRollbackTarget(
+  projectId: string,
+  liveCommitSha: string | null,
+): Promise<Deployment | null> {
+  const { rows } = await pool.query<Deployment>(
+    `select * from deployments
+     where project_id = $1
+       and status in ('stopped', 'rolled_back')
+       and image_tag is not null
+       and commit_sha is distinct from $2
+     order by created_at desc
+     limit 1`,
+    [projectId, liveCommitSha],
+  );
+  return rows[0] ?? null;
 }
 
 export async function getDeployment(id: string): Promise<Deployment | null> {
@@ -111,16 +155,19 @@ export async function updateDeployment(
   ]);
 }
 
-/** Mark previous live deployments of a project as stopped (routing swap). */
+/** Mark previous live deployments of a project as stopped (routing swap).
+ *  A rollback passes 'rolled_back' instead, so history distinguishes
+ *  "superseded by a newer push" from "undone by a rollback". */
 export async function markOldDeploymentsStopped(
   projectId: string,
   exceptDeploymentId: string,
+  status: "stopped" | "rolled_back" = "stopped",
 ): Promise<Deployment[]> {
   const { rows } = await pool.query<Deployment>(
-    `update deployments set status = 'stopped', finished_at = now()
+    `update deployments set status = $3, finished_at = now()
      where project_id = $1 and status = 'live' and id != $2
      returning *`,
-    [projectId, exceptDeploymentId],
+    [projectId, exceptDeploymentId, status],
   );
   return rows;
 }

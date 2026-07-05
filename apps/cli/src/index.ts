@@ -22,7 +22,7 @@ interface Deployment {
 }
 
 interface LogLine {
-  seq: string;
+  seq: string | number; // bigint arrives as a string over REST, a number over WS
   stream: string;
   line: string;
 }
@@ -72,31 +72,102 @@ function resolveProject(arg?: string): string {
   );
 }
 
-/** Poll a deployment's status + logs until it reaches a terminal state. */
+/**
+ * Follow a deployment's logs until it reaches a terminal state: prefer the
+ * API's live WebSocket stream, fall back to 1s polling if the stream is
+ * unavailable (older API, proxy in the way, ...).
+ */
 async function follow(deploymentId: string): Promise<void> {
-  let after = 0;
+  // Highest seq printed so far — shared between stream and poll so a
+  // fallback mid-stream doesn't reprint lines.
+  const seen = { after: 0 };
+  const print = (l: LogLine) => {
+    if (Number(l.seq) <= seen.after) return;
+    const prefix = l.stream === "system" ? "==> " : "    ";
+    console.log(`${prefix}${l.line}`);
+    seen.after = Number(l.seq);
+  };
+
+  let status: string;
+  try {
+    status = await followStream(deploymentId, print);
+  } catch {
+    status = await followPoll(deploymentId, print, seen);
+  }
+
+  const d = await api<Deployment>("GET", `/api/deployments/${deploymentId}`);
+  if (status === "failed") {
+    fail(`deployment failed: ${d.error ?? "see logs above"}`);
+  }
+  console.log(`\ndeployment ${status}`);
+  if (status === "live" && d.host_port) {
+    console.log(`serving on http://127.0.0.1:${d.host_port}`);
+  }
+}
+
+/**
+ * Stream logs over the API's WebSocket endpoint (Node >= 22 ships a global
+ * WebSocket). Resolves with the final status from the server's {done, status}
+ * message; rejects if the stream drops first so the caller can fall back.
+ */
+function followStream(
+  deploymentId: string,
+  onLine: (l: LogLine) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url =
+      `${API_URL.replace(/^http/, "ws")}/api/deployments/${deploymentId}` +
+      `/logs/stream?token=${encodeURIComponent(API_TOKEN)}`;
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(url);
+    } catch (err) {
+      return reject(err);
+    }
+    let settled = false;
+    ws.addEventListener("message", (ev) => {
+      let msg: Partial<LogLine> & { done?: boolean; status?: string };
+      try {
+        msg = JSON.parse(String(ev.data));
+      } catch {
+        return;
+      }
+      if (msg.done && msg.status) {
+        settled = true;
+        ws.close();
+        resolve(msg.status);
+      } else if (msg.seq !== undefined) {
+        onLine(msg as LogLine);
+      }
+    });
+    ws.addEventListener("error", () => {
+      if (!settled) {
+        settled = true;
+        reject(new Error("log stream unavailable"));
+      }
+    });
+    ws.addEventListener("close", () => {
+      if (!settled) {
+        settled = true;
+        reject(new Error("log stream closed before the deployment finished"));
+      }
+    });
+  });
+}
+
+/** Poll status + logs every second until a terminal state (WS fallback). */
+async function followPoll(
+  deploymentId: string,
+  onLine: (l: LogLine) => void,
+  seen: { after: number },
+): Promise<string> {
   for (;;) {
     const { status, lines } = await api<{ status: string; lines: LogLine[] }>(
       "GET",
-      `/api/deployments/${deploymentId}/logs?after=${after}`,
+      `/api/deployments/${deploymentId}/logs?after=${seen.after}`,
     );
-    for (const l of lines) {
-      const prefix = l.stream === "system" ? "==> " : "    ";
-      console.log(`${prefix}${l.line}`);
-      after = Math.max(after, Number(l.seq));
-    }
-    if (TERMINAL.has(status)) {
-      if (status === "failed") {
-        const d = await api<Deployment>("GET", `/api/deployments/${deploymentId}`);
-        fail(`deployment failed: ${d.error ?? "see logs above"}`);
-      }
-      const d = await api<Deployment>("GET", `/api/deployments/${deploymentId}`);
-      console.log(`\ndeployment ${status}`);
-      if (status === "live" && d.host_port) {
-        console.log(`serving on http://127.0.0.1:${d.host_port}`);
-      }
-      return;
-    }
+    for (const l of lines) onLine(l);
+    if (TERMINAL.has(status)) return status;
     await sleep(1000);
   }
 }
@@ -144,6 +215,19 @@ program
       `/api/projects/${name}/deployments`,
     );
     console.log(`deployment ${deployment.id} queued for '${name}'\n`);
+    await follow(deployment.id);
+  });
+
+program
+  .command("rollback [project]")
+  .description("re-deploy the previous version of a project")
+  .action(async (projectArg?: string) => {
+    const name = resolveProject(projectArg);
+    const deployment = await api<Deployment>(
+      "POST",
+      `/api/projects/${name}/rollback`,
+    );
+    console.log(`rollback deployment ${deployment.id} queued for '${name}'\n`);
     await follow(deployment.id);
   });
 

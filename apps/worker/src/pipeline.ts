@@ -40,42 +40,56 @@ export async function runDeployment(deploymentId: string): Promise<void> {
   const workdir = path.join(config.buildRoot, deploymentId);
   let containerId: string | null = null;
 
-  try {
-    // ---- clone ----
-    await updateDeployment(deploymentId, {
-      status: "building",
-      started_at: new Date(),
-    });
-    log.system(`cloning ${project.repo_url} (branch ${project.branch})`);
-    await mkdir(config.buildRoot, { recursive: true });
-    await exec(
-      "git",
-      [
-        "clone",
-        "--depth",
-        "1",
-        "--branch",
-        project.branch,
-        project.repo_url,
-        workdir,
-      ],
-      { onLine: (s, l) => log.write(s, l), timeoutMs: config.buildTimeoutMs },
-    );
-    const sha = (await exec("git", ["-C", workdir, "rev-parse", "HEAD"])).trim();
-    await updateDeployment(deploymentId, { commit_sha: sha });
-    log.system(`checked out ${sha.slice(0, 12)}`);
+  // A deployment created with image_tag already set is a rollback: the API
+  // pre-filled it from an earlier deployment, so there is nothing to build.
+  const isRollback = deployment.image_tag !== null;
+  let imageTag: string;
 
-    // ---- build ----
-    const imageTag = `${project.name}:${deploymentId.slice(0, 8)}`;
-    log.system(`building image ${imageTag}`);
-    await dockerBuild(imageTag, workdir, {
-      onLine: (s, l) => log.write(s, l),
-      timeoutMs: config.buildTimeoutMs,
-    });
-    await updateDeployment(deploymentId, { image_tag: imageTag });
+  try {
+    if (isRollback) {
+      imageTag = deployment.image_tag!;
+      await updateDeployment(deploymentId, {
+        status: "deploying",
+        started_at: new Date(),
+      });
+      log.system(`rolling back to image ${imageTag} — skipping clone and build`);
+    } else {
+      // ---- clone ----
+      await updateDeployment(deploymentId, {
+        status: "building",
+        started_at: new Date(),
+      });
+      log.system(`cloning ${project.repo_url} (branch ${project.branch})`);
+      await mkdir(config.buildRoot, { recursive: true });
+      await exec(
+        "git",
+        [
+          "clone",
+          "--depth",
+          "1",
+          "--branch",
+          project.branch,
+          project.repo_url,
+          workdir,
+        ],
+        { onLine: (s, l) => log.write(s, l), timeoutMs: config.buildTimeoutMs },
+      );
+      const sha = (await exec("git", ["-C", workdir, "rev-parse", "HEAD"])).trim();
+      await updateDeployment(deploymentId, { commit_sha: sha });
+      log.system(`checked out ${sha.slice(0, 12)}`);
+
+      // ---- build ----
+      imageTag = `${project.name}:${deploymentId.slice(0, 8)}`;
+      log.system(`building image ${imageTag}`);
+      await dockerBuild(imageTag, workdir, {
+        onLine: (s, l) => log.write(s, l),
+        timeoutMs: config.buildTimeoutMs,
+      });
+      await updateDeployment(deploymentId, { image_tag: imageTag });
+      await updateDeployment(deploymentId, { status: "deploying" });
+    }
 
     // ---- run ----
-    await updateDeployment(deploymentId, { status: "deploying" });
     log.system(`starting container (app port ${project.port})`);
     containerId = await dockerRun({
       imageTag,
@@ -114,7 +128,11 @@ export async function runDeployment(deploymentId: string): Promise<void> {
         log.system(`warning: failed to stop ${old}: ${err.message}`),
       );
     }
-    await markOldDeploymentsStopped(project.id, deploymentId);
+    await markOldDeploymentsStopped(
+      project.id,
+      deploymentId,
+      isRollback ? "rolled_back" : "stopped",
+    );
 
     await updateDeployment(deploymentId, {
       status: "live",
