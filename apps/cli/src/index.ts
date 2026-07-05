@@ -156,9 +156,9 @@ program
     if (!deployments.length) return console.log("no deployments yet");
     for (const d of deployments) {
       const sha = d.commit_sha ? d.commit_sha.slice(0, 8) : "--------";
-      const port = d.host_port ? `:${d.host_port}` : "";
+      const url = d.host_port ? `http://127.0.0.1:${d.host_port}` : "";
       console.log(
-        `${d.id}  ${d.status.padEnd(11)}  ${sha}  ${new Date(d.created_at).toLocaleString()}${port}`,
+        `${d.id}  ${d.status.padEnd(11)}  ${sha}  ${new Date(d.created_at).toLocaleString()}  ${url}`,
       );
     }
   });
