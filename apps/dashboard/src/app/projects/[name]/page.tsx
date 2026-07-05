@@ -59,6 +59,7 @@ export default async function ProjectPage({
                 ? ["deploy", "rollback", "stop", "remove"]
                 : ["deploy", "rollback", "remove"]
             }
+            inFlight={anyInFlight}
           />
         </span>
       </div>

@@ -154,6 +154,7 @@ export default async function HomePage() {
                   <ActionButtons
                     project={p.name}
                     kinds={d?.status === "live" ? ["deploy", "stop"] : ["deploy"]}
+                    inFlight={d !== null && isInFlight(d.status)}
                   />
                 </div>
               </div>

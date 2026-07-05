@@ -53,9 +53,13 @@ const CONFIRM: Partial<Record<Kind, { body: string; cta: string }>> = {
 export default function ActionButtons({
   project,
   kinds = ["deploy"],
+  inFlight = false,
 }: {
   project: string;
   kinds?: Kind[];
+  /** A build/deploy is currently running for this project — lock the
+   *  buttons so it can't be queued twice by accident. */
+  inFlight?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<Kind | null>(null);
@@ -128,12 +132,14 @@ export default function ActionButtons({
                 ? "btn btn-primary"
                 : "btn"
           }
-          disabled={pending}
+          disabled={pending || inFlight}
           onClick={() => run(kind)}
         >
           <span className="icon-label">
             {ICON[kind]}
-            {busy === kind ? LABEL[kind][1] : LABEL[kind][0]}
+            {busy === kind || (inFlight && kind === "deploy")
+              ? LABEL[kind][1]
+              : LABEL[kind][0]}
           </span>
         </button>
       ))}

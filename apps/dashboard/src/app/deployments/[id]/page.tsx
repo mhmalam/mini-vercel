@@ -47,6 +47,7 @@ export default async function DeploymentPage({
                 ? ["deploy", "rollback", "stop"]
                 : ["deploy", "rollback"]
             }
+            inFlight={isInFlight(deployment.status)}
           />
         )}
       </div>
