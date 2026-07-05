@@ -31,6 +31,13 @@ server {
     listen 80;
     server_name ${serverName};
 
+    # branded page when the container is down between deploys/crashes
+    error_page 502 503 504 /__mv_offline.html;
+    location = /__mv_offline.html {
+        internal;
+        alias /etc/nginx/branding/offline.html;
+    }
+
     location / {
         proxy_pass http://host.docker.internal:${hostPort};
         proxy_set_header Host $host;

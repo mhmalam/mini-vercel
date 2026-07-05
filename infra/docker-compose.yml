@@ -38,6 +38,7 @@ services:
       - "127.0.0.1:8080:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/branding:/etc/nginx/branding:ro
     extra_hosts:
       # Lets nginx reach app containers published on the host's loopback.
       # Works on Docker Desktop out of the box; host-gateway covers Linux VPS.

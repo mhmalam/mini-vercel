@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>offline — mini-vercel</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(900px 480px at 50% -10%, #181d27 0%, #0a0a0a 70%), #0a0a0a;
+    color: #f2f2f2;
+    font: 15px/1.6 system-ui, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    max-width: 430px; margin: 24px; padding: 34px 36px;
+    background: #111113; border: 1px solid #26262a; border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  }
+  .brand { font-weight: 650; font-size: 16px; letter-spacing: -.01em; }
+  .brand .mark { color: #ffb224; }
+  h1 { font-size: 22px; letter-spacing: -.02em; margin: 18px 0 8px; }
+  p { margin: 0 0 6px; color: #a1a1aa; font-size: 14px; }
+  .lamp {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 18px; font-size: 12.5px; font-weight: 500; color: #71717a;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  .lamp::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: #71717a; box-shadow: 0 0 10px #71717a55;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand"><span class="mark">&#9650;</span> mini-vercel</div>
+    <h1>Nothing is deployed here</h1>
+    <p>This project is offline, or no project has claimed this address yet.
+       If you expected something, the next deploy will bring it back.</p>
+    <div class="lamp">offline</div>
+  </div>
+</body>
+</html>
