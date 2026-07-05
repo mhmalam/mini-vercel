@@ -49,9 +49,9 @@
   --text: #f2f2f2;
   --dim: #b8b8c0;
   --faint: #94949e;
-  --accent: #ffb224;
-  --accent-soft: #fdc65b;
-  --accent-contrast: #171205;
+  --accent: #a78bfa;
+  --accent-soft: #c4b5fd;
+  --accent-contrast: #16111f;
   --link: var(--accent-soft);
 
   --st-live: #4ade80;
@@ -60,7 +60,7 @@
   --st-queued: #9aa4b2;
   --st-failed: #f26d6d;
   --st-stopped: #71717a;
-  --st-rolled_back: #c084fc;
+  --st-rolled_back: #f472b6;
 
   --header-bg: rgba(10, 10, 10, 0.8);
   --shadow-card: none;
