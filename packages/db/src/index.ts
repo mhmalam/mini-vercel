@@ -125,6 +125,22 @@ export async function markOldDeploymentsStopped(
   return rows;
 }
 
+// ---------- routes ----------
+
+/** Point a subdomain at a deployment (insert or move). */
+export async function upsertRoute(
+  subdomain: string,
+  deploymentId: string,
+): Promise<void> {
+  await pool.query(
+    `insert into routes (subdomain, deployment_id, updated_at)
+     values ($1, $2, now())
+     on conflict (subdomain)
+     do update set deployment_id = excluded.deployment_id, updated_at = now()`,
+    [subdomain, deploymentId],
+  );
+}
+
 // ---------- build logs ----------
 
 export async function appendBuildLog(

@@ -20,6 +20,7 @@ import {
   pruneProjectImages,
 } from "./docker.js";
 import { LogSink } from "./logsink.js";
+import { publicUrl, switchRoute } from "./routing.js";
 
 const READINESS_TIMEOUT_MS = 60_000;
 const READINESS_INTERVAL_MS = 1_000;
@@ -94,6 +95,15 @@ export async function runDeployment(deploymentId: string): Promise<void> {
     await waitForHttp(hostPort, project.name);
     log.system("app is answering");
 
+    // ---- route: point <project>.<domain> at the new container ----
+    log.system(`routing ${project.name}.${config.baseDomain} -> 127.0.0.1:${hostPort}`);
+    await switchRoute({
+      projectName: project.name,
+      deploymentId,
+      hostPort,
+      onWarning: (msg) => log.system(`warning: ${msg}`),
+    });
+
     // ---- swap: stop previous containers only after the new one is up ----
     const oldContainers = (await listProjectContainers(project.name)).filter(
       (id) => !containerId!.startsWith(id) && !id.startsWith(containerId!),
@@ -110,7 +120,7 @@ export async function runDeployment(deploymentId: string): Promise<void> {
       status: "live",
       finished_at: new Date(),
     });
-    log.system(`deployment live at http://127.0.0.1:${hostPort}`);
+    log.system(`deployment live at ${publicUrl(project.name)}`);
 
     // ---- housekeeping ----
     const removed = await pruneProjectImages(

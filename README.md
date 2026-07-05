@@ -19,7 +19,9 @@ packages/
   db/         Postgres pool, SQL migrations, typed queries
   shared/     config, queue names, shared types
 infra/
-  docker-compose.yml   Postgres + Redis for local dev
+  docker-compose.yml   Postgres + Redis + nginx for local dev
+  nginx/conf.d/        server blocks (10-*.conf generated per deploy)
+  provision.md         VPS setup runbook (DNS, wildcard cert, hardening)
 ```
 
 ## Prerequisites
@@ -55,6 +57,11 @@ npx deploy list my-app
 npx deploy logs <deployment-id>
 ```
 
-A successful push ends with the local URL the container is serving on
-(e.g. `http://127.0.0.1:55001`). Public subdomains + TLS arrive with the
-proxy phase (see the plan, weekends 3–5).
+A successful push ends with the app's routed URL. Locally that is
+`http://<project>.localhost:8080` — nginx (in Docker) routes by Host header
+to whichever container is live, and the worker rewrites the route on every
+deploy. Open it in a browser; unknown subdomains get a 404.
+
+On the VPS the same mechanism serves `https://<project>.deploy.malam.me`
+with a wildcard cert — see [infra/provision.md](./infra/provision.md).
+The hand-written Go proxy that replaces nginx is the next phase (see plan §4).

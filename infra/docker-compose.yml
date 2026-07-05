@@ -29,6 +29,20 @@ services:
       timeout: 3s
       retries: 10
 
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: mini-vercel-nginx
+    restart: unless-stopped
+    ports:
+      # Local dev: http only, on 8080. The VPS override maps 80/443 instead.
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    extra_hosts:
+      # Lets nginx reach app containers published on the host's loopback.
+      # Works on Docker Desktop out of the box; host-gateway covers Linux VPS.
+      - "host.docker.internal:host-gateway"
+
 volumes:
   pgdata:
   redisdata:
