@@ -1,67 +1,60 @@
-# proxy — the hand-written Go reverse proxy (phase 2)
+# the Go proxy
 
-Routes `http://<project>.<domain>` to whichever container is live, straight
-from the `routes` table in Postgres. This is phase 2 of the proxy story
-(MINI-VERCEL-PLAN.md §4): it does the same job as the generated nginx config,
-but with its own route polling, active health checks, per-request access logs,
-and optional TLS termination.
+This is my hand-written replacement for nginx — the part of the project I
+built specifically to learn something hard. nginx got the platform working
+fast (the worker generates its config and reloads it on every deploy), but a
+config file I regenerate isn't the same as understanding how a reverse proxy
+actually works. So this is one, from scratch, in about 400 lines of Go.
 
-```
-request Host: hello.localhost:8081
-        │  strip port, take first label -> "hello"
-        ▼
-route table (polled from Postgres every 2s, atomically swapped)
-        │  hello -> host_port 50929
-        ▼
-health map (every backend GET-probed every 5s, 3s timeout)
-        │  :50929 healthy?  no -> 503 "deployment unhealthy"
-        ▼
-httputil.ReverseProxy -> http://127.0.0.1:50929  (WebSockets pass through)
-```
+What it does:
 
-Unknown subdomain → `404 no such deployment`. Backend down → `503` (health
-check caught it) or `502` (it died between checks).
+- polls the `routes` table in Postgres every 2 seconds and swaps the route
+  map atomically (readers never lock, never see a half-updated table)
+- routes by Host header: `hello.localhost:8081` → first label is `hello` →
+  look up its live container's port → `httputil.ReverseProxy`
+- health-checks every backend every 5 seconds; a dead app gets a clean
+  `503 deployment unhealthy` instead of a hang
+- logs every request (method, host, status, duration, upstream)
+- unknown subdomain → `404 no such deployment`
+- WebSockets pass through untouched
 
-## Run it locally
+It runs on **:8081** next to nginx on **:8080**, both reading the same routes
+table, so I can compare them request-for-request. When I trust it fully, it
+takes the public port and the nginx container retires. It needs no reloads —
+it notices route changes on its own within 2 seconds, which is honestly the
+part that made the design click for me: the proxy is just a *view* over the
+database.
 
-Requires Go ≥ 1.21 and the infra stack up (`npm run infra:up`).
+## Try it
+
+Go 1.21+ and the local stack running (`npm run infra:up` from the repo root):
 
 ```sh
 cd apps/proxy
 go run .
-# in another terminal:
+# elsewhere:
 curl -H "Host: hello.localhost" http://127.0.0.1:8081/
 ```
 
-Or build a binary: `go build .` → `./proxy` (`proxy.exe` on Windows).
+## Config
 
-## Coexistence with nginx
+All env vars, all optional:
 
-Nothing conflicts: nginx (phase 1) listens on **8080** inside Docker and is
-reloaded by the worker; this proxy listens on **8081** on the host and needs
-no reloads — it notices route changes by itself within 2s. Run both, compare
-behavior, and when the Go proxy has earned trust, point the public port at it
-and retire the nginx container. The worker keeps writing the `routes` row
-either way — that row is the shared source of truth.
-
-## Environment variables
-
-| Variable | Default | Meaning |
+| Variable | Default | What it is |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgres://minivercel:minivercel@127.0.0.1:5432/minivercel` | Postgres with the `routes`/`deployments` tables (same default as the Node config). |
-| `PROXY_HTTP_PORT` | `8081` | HTTP listen port. With TLS enabled this listener only redirects to https. |
-| `PROXY_HTTPS_PORT` | `8443` | HTTPS listen port (only used when TLS is enabled). |
-| `PROXY_UPSTREAM_HOST` | `127.0.0.1` | Host the app containers publish on. On the local host it's loopback; from inside a container it would be `host.docker.internal`. |
-| `PROXY_TLS_CERT` | *(unset)* | Path to a PEM cert (e.g. the `*.deploy.malam.me` wildcard). TLS turns on only when **both** cert and key are set. |
-| `PROXY_TLS_KEY` | *(unset)* | Path to the matching PEM private key. |
+| `DATABASE_URL` | same local default as the Node side | where the routes live |
+| `PROXY_HTTP_PORT` | `8081` | HTTP listener (redirects to https when TLS is on) |
+| `PROXY_HTTPS_PORT` | `8443` | HTTPS listener (only with TLS) |
+| `PROXY_UPSTREAM_HOST` | `127.0.0.1` | where app containers publish their ports |
+| `PROXY_TLS_CERT` / `PROXY_TLS_KEY` | unset | set both → TLS on |
 
-## VPS notes
+## Notes for the server
 
-- Terminate TLS here: set `PROXY_TLS_CERT`/`PROXY_TLS_KEY` to the wildcard
-  cert from lego/acme.sh, `PROXY_HTTPS_PORT=443`, `PROXY_HTTP_PORT=80`
-  (the HTTP listener then 308-redirects everything to https).
-- Binding :80/:443 as non-root needs
-  `setcap 'cap_net_bind_service=+ep' ./proxy` (or run it behind systemd with
-  `AmbientCapabilities=CAP_NET_BIND_SERVICE`).
-- The proxy holds no state; restarting it is safe. On a Postgres outage it
-  keeps serving the last route table it saw.
+Set the cert/key to the wildcard cert, ports to 80/443, and give the binary
+permission to bind low ports (`setcap 'cap_net_bind_service=+ep' ./proxy`,
+or `AmbientCapabilities=CAP_NET_BIND_SERVICE` in the systemd unit). It holds
+no state, so restarting it is always safe — and if Postgres goes down it
+keeps serving the last route table it saw, which is exactly what you want.
+
+Known gap I chose to accept: if an app dies *between* health checks, the
+first request in that window gets a 502 before the checker flips it to 503.
