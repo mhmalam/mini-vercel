@@ -232,6 +232,34 @@ program
   });
 
 program
+  .command("stop [project]")
+  .description("take a project offline (stop containers, drop its route)")
+  .action(async (projectArg?: string) => {
+    const name = resolveProject(projectArg);
+    const { deploymentId } = await api<{ deploymentId: string }>(
+      "POST",
+      `/api/projects/${name}/stop`,
+    );
+    // Can't reuse follow(): the deployment is already in a terminal state
+    // ("live") — poll until the worker flips it to "stopped".
+    let after = 0;
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      const { status, lines } = await api<{ status: string; lines: LogLine[] }>(
+        "GET",
+        `/api/deployments/${deploymentId}/logs?after=${after}`,
+      );
+      for (const l of lines) {
+        console.log(`${l.stream === "system" ? "==> " : "    "}${l.line}`);
+        after = Math.max(after, Number(l.seq));
+      }
+      if (status === "stopped") return console.log(`\n'${name}' is offline`);
+      await sleep(1000);
+    }
+    fail("timed out waiting for the stop to complete — check `deploy list`");
+  });
+
+program
   .command("list [project]")
   .description("list recent deployments (optionally for one project)")
   .action(async (projectArg?: string) => {

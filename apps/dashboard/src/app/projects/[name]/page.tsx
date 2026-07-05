@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ActionButtons from "@/components/ActionButtons";
 import AutoRefresh from "@/components/AutoRefresh";
-import DeployButton from "@/components/DeployButton";
 import StatusBadge from "@/components/StatusBadge";
 import { listDeployments, listProjects, publicUrl } from "@/lib/api";
 import { isInFlight } from "@/lib/status";
@@ -40,7 +40,7 @@ export default async function ProjectPage({
             </a>
           </p>
         </div>
-        <DeployButton project={project.name} />
+        <ActionButtons project={project.name} kinds={["deploy", "rollback", "stop"]} />
       </div>
 
       {deployments.length === 0 ? (
@@ -57,6 +57,7 @@ export default async function ProjectPage({
                 <th>commit</th>
                 <th>created</th>
                 <th>host port</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -67,12 +68,18 @@ export default async function ProjectPage({
                   </td>
                   <td>
                     <StatusBadge status={d.status} />
+                    {d.status === "failed" && d.error && (
+                      <span className="error-text"> — {d.error.slice(0, 60)}</span>
+                    )}
                   </td>
                   <td>{d.commit_sha ? d.commit_sha.slice(0, 8) : "--------"}</td>
                   <td className="muted">
                     {new Date(d.created_at).toLocaleString()}
                   </td>
                   <td>{d.host_port ?? <span className="faint">—</span>}</td>
+                  <td>
+                    <Link href={`/deployments/${d.id}`}>logs →</Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

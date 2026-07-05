@@ -95,6 +95,15 @@ export const listDeployments = (project?: string, limit?: number) => {
 export const createDeployment = (project: string) =>
   api<Deployment>("POST", `/api/projects/${encodeURIComponent(project)}/deployments`);
 
+export const rollbackProject = (project: string) =>
+  api<Deployment>("POST", `/api/projects/${encodeURIComponent(project)}/rollback`);
+
+export const stopProject = (project: string) =>
+  api<{ deploymentId: string }>(
+    "POST",
+    `/api/projects/${encodeURIComponent(project)}/stop`,
+  );
+
 export const getDeployment = (id: string) =>
   api<Deployment>("GET", `/api/deployments/${encodeURIComponent(id)}`);
 

@@ -188,18 +188,28 @@ export async function upsertRoute(
   );
 }
 
+export async function deleteRoute(subdomain: string): Promise<void> {
+  await pool.query("delete from routes where subdomain = $1", [subdomain]);
+}
+
 // ---------- build logs ----------
 
+/** Append a log line, letting Postgres pick the next seq — a deployment can
+ *  be logged to again after finishing (e.g. a later stop/teardown), so the
+ *  writer can't assume it starts from zero. Safe because writes to one
+ *  deployment are serialized (single worker, chained LogSink inserts). */
 export async function appendBuildLog(
   deploymentId: string,
-  seq: number,
   stream: BuildLogLine["stream"],
   line: string,
 ): Promise<void> {
   await pool.query(
     `insert into build_logs (deployment_id, seq, stream, line)
-     values ($1, $2, $3, $4)`,
-    [deploymentId, seq, stream, line],
+     values ($1,
+             (select coalesce(max(seq), 0) + 1 from build_logs
+              where deployment_id = $1),
+             $2, $3)`,
+    [deploymentId, stream, line],
   );
 }
 

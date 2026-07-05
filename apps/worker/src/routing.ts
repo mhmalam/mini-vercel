@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { config } from "@mini-vercel/shared";
-import { upsertRoute } from "@mini-vercel/db";
+import { deleteRoute, upsertRoute } from "@mini-vercel/db";
 import { exec } from "./exec.js";
 
 /**
@@ -68,5 +68,20 @@ export async function switchRoute(opts: {
     opts.onWarning(
       `nginx reload failed (${message}); route file written, reload manually with: docker exec ${config.nginxContainer} nginx -s reload`,
     );
+  }
+}
+
+/** Undo switchRoute: the subdomain 404s again (project taken offline). */
+export async function removeRoute(
+  projectName: string,
+  onWarning: (message: string) => void,
+): Promise<void> {
+  await deleteRoute(projectName);
+  await rm(confPath(projectName), { force: true });
+  try {
+    await exec("docker", ["exec", config.nginxContainer, "nginx", "-s", "reload"]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    onWarning(`nginx reload failed (${message}); route file already removed`);
   }
 }

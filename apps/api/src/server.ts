@@ -40,6 +40,17 @@ app.register(webhookRoutes);
 
 app.get("/health", async () => ({ ok: true }));
 
+/**
+ * The platform runs whatever it clones, so registration is limited to repos
+ * under the owner's GitHub account(s). Local paths stay allowed in local dev
+ * (smoke tests); on the VPS baseDomain isn't "localhost" so they're refused.
+ */
+function repoAllowed(repoUrl: string): boolean {
+  const m = /^(?:https:\/\/|git@)github\.com[:/]([^/]+)\//i.exec(repoUrl.trim());
+  if (m) return config.allowedRepoOwners.includes(m[1]!.toLowerCase());
+  return config.baseDomain === "localhost";
+}
+
 // ---------- projects ----------
 
 app.post<{
@@ -53,6 +64,11 @@ app.post<{
   }
   if (!repoUrl) {
     return reply.code(400).send({ error: "repoUrl is required" });
+  }
+  if (!repoAllowed(repoUrl)) {
+    return reply.code(403).send({
+      error: `repo not allowed — only repos owned by ${config.allowedRepoOwners.join(", ")} can be registered (ALLOWED_REPO_OWNERS)`,
+    });
   }
   if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
     return reply.code(400).send({ error: "port must be a valid TCP port" });
@@ -112,6 +128,30 @@ app.post<{ Params: { name: string } }>(
       { jobId: deployment.id },
     );
     return reply.code(201).send(deployment);
+  },
+);
+
+// Take a project offline: the worker drops its route and stops its
+// containers. `deploy push` (or the dashboard's Deploy) brings it back.
+app.post<{ Params: { name: string } }>(
+  "/api/projects/:name/stop",
+  async (req, reply) => {
+    const project = await getProjectByName(req.params.name);
+    if (!project) {
+      return reply.code(404).send({ error: "project not found" });
+    }
+    const live = await getLiveDeployment(project.id);
+    if (!live) {
+      return reply
+        .code(409)
+        .send({ error: `'${project.name}' has no live deployment to stop` });
+    }
+    await buildQueue.add(
+      "stop",
+      { deploymentId: live.id, action: "stop" },
+      { jobId: `${live.id}-stop` },
+    );
+    return reply.code(202).send({ deploymentId: live.id });
   },
 );
 

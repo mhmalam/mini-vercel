@@ -1,15 +1,16 @@
 import Link from "next/link";
+import ActionButtons from "@/components/ActionButtons";
 import AutoRefresh from "@/components/AutoRefresh";
-import DeployButton from "@/components/DeployButton";
 import NewProjectForm from "@/components/NewProjectForm";
 import StatusBadge from "@/components/StatusBadge";
 import { listDeployments, listProjects, publicUrl } from "@/lib/api";
+import { listGithubRepos } from "@/lib/github";
 import { isInFlight } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const projects = await listProjects();
+  const [projects, repos] = await Promise.all([listProjects(), listGithubRepos()]);
   const latest = await Promise.all(
     projects.map((p) => listDeployments(p.name, 1).then((ds) => ds[0] ?? null)),
   );
@@ -71,7 +72,7 @@ export default async function HomePage() {
                       </a>
                     </td>
                     <td>
-                      <DeployButton project={p.name} />
+                      <ActionButtons project={p.name} />
                     </td>
                   </tr>
                 );
@@ -82,7 +83,7 @@ export default async function HomePage() {
       )}
 
       <h2>register a project</h2>
-      <NewProjectForm />
+      <NewProjectForm repos={repos} />
     </>
   );
 }

@@ -4,9 +4,11 @@ export * from "./redis.js";
 /** Name of the BullMQ queue that build jobs go through. */
 export const BUILD_QUEUE = "builds";
 
-/** Payload of a build job. Everything else is looked up from Postgres. */
+/** Payload of a build job. Everything else is looked up from Postgres.
+ *  action "stop" tears the deployment down instead of building. */
 export interface BuildJobData {
   deploymentId: string;
+  action?: "deploy" | "stop";
 }
 
 export const DEPLOYMENT_STATUSES = [

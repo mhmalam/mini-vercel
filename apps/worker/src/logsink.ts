@@ -6,17 +6,15 @@ import { appendBuildLog, type BuildLogLine } from "@mini-vercel/db";
  * were emitted even though the stream handlers are synchronous.
  */
 export class LogSink {
-  private seq = 0;
   private tail: Promise<void> = Promise.resolve();
 
   constructor(private readonly deploymentId: string) {}
 
   write(stream: BuildLogLine["stream"], line: string): void {
-    const seq = ++this.seq;
     this.tail = this.tail.then(() =>
-      appendBuildLog(this.deploymentId, seq, stream, line).catch((err) => {
+      appendBuildLog(this.deploymentId, stream, line).catch((err) => {
         // Losing a log line must not fail the build itself.
-        console.error(`failed to persist log line ${seq}:`, err);
+        console.error(`failed to persist log line:`, err);
       }),
     );
   }

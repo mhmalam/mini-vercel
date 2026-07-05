@@ -37,6 +37,14 @@ export const config = {
   /** HMAC secret for GitHub push webhooks. Empty (the default) disables the
    *  webhook endpoint entirely. */
   webhookSecret: env("GITHUB_WEBHOOK_SECRET", ""),
+  /** Only repos under these GitHub owners may be registered — the platform
+   *  runs whatever it builds, so never point it at code that isn't yours.
+   *  Comma-separated. Local filesystem paths are additionally allowed while
+   *  baseDomain is "localhost" (dev smoke tests). */
+  allowedRepoOwners: env("ALLOWED_REPO_OWNERS", "mhmalam")
+    .split(",")
+    .map((o) => o.trim().toLowerCase())
+    .filter(Boolean),
   buildTimeoutMs: Number(env("BUILD_TIMEOUT_MS", String(10 * 60 * 1000))),
   buildRoot: env("BUILD_ROOT", path.join(os.tmpdir(), "mini-vercel-builds")),
   /** How many images to keep per project when pruning after a build. */

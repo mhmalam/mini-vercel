@@ -231,6 +231,25 @@ td.grow {
   border-color: var(--border);
   cursor: default;
 }
+.btn-danger {
+  color: var(--st-failed);
+  border-color: var(--st-failed);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--st-failed);
+  border-color: var(--st-failed);
+  color: var(--bg);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.actions .error-text {
+  font-size: 13px;
+}
 
 .new-project {
   display: flex;
@@ -247,7 +266,8 @@ td.grow {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-.new-project input {
+.new-project input,
+.new-project select {
   font-family: var(--mono);
   font-size: 13.5px;
   color: var(--text);
@@ -256,10 +276,14 @@ td.grow {
   border-radius: 2px;
   padding: 8px 10px;
 }
+.new-project select {
+  max-width: 100%;
+}
 .new-project input::placeholder {
   color: var(--faint);
 }
-.new-project input:focus {
+.new-project input:focus,
+.new-project select:focus {
   outline: none;
   border-color: var(--accent);
 }
