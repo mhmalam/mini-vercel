@@ -108,6 +108,11 @@ export const stopProject = (project: string) =>
 export const removeProject = (project: string) =>
   api<{ ok: boolean }>("DELETE", `/api/projects/${encodeURIComponent(project)}`);
 
+export const updateProject = (
+  project: string,
+  patch: { name?: string; branch?: string; port?: number },
+) => api<Project>("PATCH", `/api/projects/${encodeURIComponent(project)}`, patch);
+
 export const getDeployment = (id: string) =>
   api<Deployment>("GET", `/api/deployments/${encodeURIComponent(id)}`);
 

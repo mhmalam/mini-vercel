@@ -10,6 +10,7 @@ import {
   removeProject as removeProjectApi,
   rollbackProject,
   stopProject as stopProjectApi,
+  updateProject,
 } from "./api";
 
 export interface ActionResult {
@@ -75,6 +76,34 @@ export async function removeProject(project: string): Promise<ActionResult> {
   }
   revalidatePath("/");
   redirect("/");
+}
+
+export interface EditProjectState {
+  error?: string;
+}
+
+/** Edit name/branch/port. A rename re-homes the subdomain (worker job). */
+export async function editProject(
+  project: string,
+  _prev: EditProjectState,
+  formData: FormData,
+): Promise<EditProjectState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const branch = String(formData.get("branch") ?? "").trim();
+  const port = Number(String(formData.get("port") ?? "").trim());
+
+  let updated;
+  try {
+    updated = await updateProject(project, {
+      name: name || undefined,
+      branch: branch || undefined,
+      port: Number.isInteger(port) && port > 0 ? port : undefined,
+    });
+  } catch (err) {
+    return { error: message(err) };
+  }
+  revalidatePath("/");
+  redirect(`/projects/${encodeURIComponent(updated.name)}`);
 }
 
 export interface AddProjectState {

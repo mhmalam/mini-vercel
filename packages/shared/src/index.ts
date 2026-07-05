@@ -6,11 +6,13 @@ export const BUILD_QUEUE = "builds";
 
 /** Payload of a build job. Everything else is looked up from Postgres.
  *  "deploy" and "stop" act on a deployment; "remove" deletes a whole
- *  project (containers, route, images, DB rows). */
+ *  project (containers, route, images, DB rows); "rename" re-homes a
+ *  project onto its new subdomain (oldName = the label/route to retire). */
 export interface BuildJobData {
   deploymentId?: string;
   projectId?: string;
-  action?: "deploy" | "stop" | "remove";
+  oldName?: string;
+  action?: "deploy" | "stop" | "remove" | "rename";
 }
 
 export const DEPLOYMENT_STATUSES = [

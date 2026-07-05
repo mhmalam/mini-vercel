@@ -11,6 +11,7 @@ import {
   getProjectByName,
   listDeployments,
   listProjects,
+  updateProject,
 } from "@mini-vercel/db";
 import { buildQueue } from "./queue.js";
 import { logStreamRoutes } from "./logstream.js";
@@ -131,6 +132,41 @@ app.post<{ Params: { name: string } }>(
     return reply.code(201).send(deployment);
   },
 );
+
+// Edit a project. branch/port take effect on the next deploy. A name change
+// also re-homes the subdomain: the worker retires the old route/containers
+// and redeploys the current image under the new name (brief downtime).
+app.patch<{
+  Params: { name: string };
+  Body: { name?: string; branch?: string; port?: number };
+}>("/api/projects/:name", async (req, reply) => {
+  const project = await getProjectByName(req.params.name);
+  if (!project) {
+    return reply.code(404).send({ error: "project not found" });
+  }
+  const { name, branch, port } = req.body ?? {};
+  if (name !== undefined && !PROJECT_NAME_RE.test(name)) {
+    return reply.code(400).send({
+      error: "name must be a DNS-safe label (a-z, 0-9, -)",
+    });
+  }
+  if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+    return reply.code(400).send({ error: "port must be a valid TCP port" });
+  }
+  const renaming = name !== undefined && name !== project.name;
+  if (renaming && (await getProjectByName(name!))) {
+    return reply.code(409).send({ error: `project '${name}' already exists` });
+  }
+  const updated = await updateProject(project.id, { name, branch, port });
+  if (renaming) {
+    await buildQueue.add(
+      "rename",
+      { projectId: project.id, oldName: project.name, action: "rename" },
+      { jobId: `rename-${project.id}-${name}` },
+    );
+  }
+  return updated;
+});
 
 // Delete a project entirely: the worker removes its route, containers,
 // and images, then the DB rows cascade away. Idempotent on the worker side.

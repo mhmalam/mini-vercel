@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { FileText, GitBranch, Globe } from "lucide-react";
 import ActionButtons from "@/components/ActionButtons";
 import AutoRefresh from "@/components/AutoRefresh";
+import EditProject from "@/components/EditProject";
 import StatusBadge from "@/components/StatusBadge";
 import { listDeployments, listProjects, publicUrl } from "@/lib/api";
 import { isInFlight } from "@/lib/status";
@@ -45,14 +46,21 @@ export default async function ProjectPage({
             </a>
           </p>
         </div>
-        <ActionButtons
-          project={project.name}
-          kinds={
-            hasLive
-              ? ["deploy", "rollback", "stop", "remove"]
-              : ["deploy", "rollback", "remove"]
-          }
-        />
+        <span className="head-actions">
+          <EditProject
+            project={project.name}
+            branch={project.branch}
+            port={project.port}
+          />
+          <ActionButtons
+            project={project.name}
+            kinds={
+              hasLive
+                ? ["deploy", "rollback", "stop", "remove"]
+                : ["deploy", "rollback", "remove"]
+            }
+          />
+        </span>
       </div>
 
       {deployments.length === 0 ? (

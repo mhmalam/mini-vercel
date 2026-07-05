@@ -5,7 +5,7 @@ import {
   type BuildJobData,
 } from "@mini-vercel/shared";
 import { runDeployment } from "./pipeline.js";
-import { removeProject, stopDeployment } from "./teardown.js";
+import { removeProject, renameProject, stopDeployment } from "./teardown.js";
 
 // One build at a time: docker build is heavy and this runs on a single box.
 const worker = new Worker<BuildJobData, void, string>(
@@ -15,6 +15,8 @@ const worker = new Worker<BuildJobData, void, string>(
     const target = job.data.deploymentId ?? job.data.projectId;
     console.log(`[worker] starting ${action} ${target}`);
     if (action === "remove") await removeProject(job.data.projectId!);
+    else if (action === "rename")
+      await renameProject(job.data.projectId!, job.data.oldName!);
     else if (action === "stop") await stopDeployment(job.data.deploymentId!);
     else await runDeployment(job.data.deploymentId!);
     console.log(`[worker] finished ${action} ${target}`);

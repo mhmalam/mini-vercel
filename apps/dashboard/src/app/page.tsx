@@ -9,6 +9,7 @@ import {
   Globe,
 } from "lucide-react";
 import ActionButtons from "@/components/ActionButtons";
+import EditProject from "@/components/EditProject";
 import GithubMark from "@/components/GithubMark";
 import AutoRefresh from "@/components/AutoRefresh";
 import NewProjectForm from "@/components/NewProjectForm";
@@ -95,13 +96,16 @@ export default async function HomePage() {
                   >
                     {p.name}
                   </Link>
-                  {d ? (
-                    <Link href={`/deployments/${d.id}`}>
-                      <StatusBadge status={d.status} />
-                    </Link>
-                  ) : (
-                    <span className="faint">never deployed</span>
-                  )}
+                  <span className="card-top-side">
+                    <EditProject project={p.name} branch={p.branch} port={p.port} />
+                    {d ? (
+                      <Link href={`/deployments/${d.id}`}>
+                        <StatusBadge status={d.status} />
+                      </Link>
+                    ) : (
+                      <span className="faint">never deployed</span>
+                    )}
+                  </span>
                 </div>
                 {githubSlug(p.repo_url) ? (
                   <a
@@ -111,31 +115,41 @@ export default async function HomePage() {
                     rel="noreferrer"
                   >
                     <GithubMark size={12} />
-                    {githubSlug(p.repo_url)}
+                    <span className="t">{githubSlug(p.repo_url)}</span>
                   </a>
                 ) : (
-                  <span className="card-repo icon-label" title={p.repo_url}>
+                  <span className="repo-pill icon-label" title={p.repo_url}>
                     <GitBranch size={12} />
-                    {p.repo_url}
+                    <span className="t">{p.repo_url}</span>
                   </span>
                 )}
                 <a className="card-url icon-label" href={url} target="_blank" rel="noreferrer">
                   <Globe size={12} />
-                  {url.replace(/^https?:\/\//, "")}
+                  <span className="t">{url.replace(/^https?:\/\//, "")}</span>
                 </a>
-                {d && (
-                  <div className="card-commit">
-                    {d.commit_message && (
-                      <div className="card-commit-msg icon-label" title={d.commit_message}>
-                        <GitCommitHorizontal size={13} />
-                        <span className="trunc-line">{d.commit_message}</span>
-                      </div>
-                    )}
-                    <div className="card-commit-when icon-label">
-                      {timeAgo(d.created_at)} on <GitBranch size={11} /> {p.branch}
-                    </div>
+                <div className="card-commit">
+                  <div className="card-commit-msg icon-label" title={d?.commit_message ?? ""}>
+                    <GitCommitHorizontal size={13} />
+                    <span className="t">
+                      {d?.commit_message ?? (
+                        <span className="faint">
+                          {d ? "no commit message" : "waiting for first deploy"}
+                        </span>
+                      )}
+                    </span>
                   </div>
-                )}
+                  <div className="card-commit-when icon-label">
+                    {d ? (
+                      <>
+                        {timeAgo(d.created_at)} on <GitBranch size={11} /> {p.branch}
+                      </>
+                    ) : (
+                      <>
+                        <GitBranch size={11} /> {p.branch}
+                      </>
+                    )}
+                  </div>
+                </div>
                 <div className="card-actions">
                   <ActionButtons
                     project={p.name}

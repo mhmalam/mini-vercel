@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Rocket, Square, Trash2, Undo2 } from "lucide-react";
+import { Power, Rocket, Trash2, Undo2 } from "lucide-react";
+import Modal from "@/components/Modal";
 import {
   deploy,
   removeProject,
@@ -23,7 +24,7 @@ const LABEL: Record<Kind, [idle: string, busy: string]> = {
 const ICON: Record<Kind, React.ReactNode> = {
   deploy: <Rocket size={13} />,
   rollback: <Undo2 size={13} />,
-  stop: <Square size={11} fill="currentColor" />,
+  stop: <Power size={13} />,
   remove: <Trash2 size={13} />,
 };
 
@@ -83,50 +84,38 @@ export default function ActionButtons({
   return (
     <div className="actions">
       {confirming && dialog && (
-        <div
-          className="modal-overlay"
-          onClick={() => setConfirming(null)}
-          role="presentation"
-        >
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirm-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="confirm-title">
-              {confirming === "stop" ? "Take " : "Delete "}
-              <span className="mono">{project}</span>{" "}
-              {confirming === "stop" ? "offline?" : "forever?"}
-            </h3>
-            <p>{dialog.body}</p>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setConfirming(null)}
-                autoFocus
-              >
-                cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => {
-                  const kind = confirming;
-                  setConfirming(null);
-                  execute(kind);
-                }}
-              >
-                <span className="icon-label">
-                  {ICON[confirming]}
-                  {dialog.cta}
-                </span>
-              </button>
-            </div>
+        <Modal onClose={() => setConfirming(null)} labelledBy="confirm-title">
+          <h3 id="confirm-title">
+            {confirming === "stop" ? "Take " : "Delete "}
+            <span className="mono">{project}</span>{" "}
+            {confirming === "stop" ? "offline?" : "forever?"}
+          </h3>
+          <p>{dialog.body}</p>
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setConfirming(null)}
+              autoFocus
+            >
+              cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => {
+                const kind = confirming;
+                setConfirming(null);
+                execute(kind);
+              }}
+            >
+              <span className="icon-label">
+                {ICON[confirming]}
+                {dialog.cta}
+              </span>
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
       {kinds.map((kind) => (
         <button

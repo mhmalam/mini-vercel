@@ -1,9 +1,12 @@
 import {
+  createDeployment,
   deleteProject,
   getDeployment,
+  getLiveDeployment,
   getProjectById,
   updateDeployment,
 } from "@mini-vercel/db";
+import { runDeployment } from "./pipeline.js";
 import {
   dockerRemoveContainer,
   dockerStop,
@@ -51,6 +54,42 @@ export async function stopDeployment(deploymentId: string): Promise<void> {
  * its images, then the DB rows (deployments/logs/routes cascade). There is
  * no deployment to log to once this finishes, so progress goes to stdout.
  */
+/**
+ * Finish a rename (the API already updated the project row): retire the old
+ * subdomain's route and old-labeled containers, then — if the project was
+ * live — redeploy its current image so everything (labels, route, URL) is
+ * reborn under the new name. Brief downtime is acceptable for a rename.
+ */
+export async function renameProject(
+  projectId: string,
+  oldName: string,
+): Promise<void> {
+  const project = await getProjectById(projectId);
+  if (!project) return;
+
+  console.log(`[worker] renaming '${oldName}' -> '${project.name}'`);
+  const live = await getLiveDeployment(projectId);
+
+  await removeRoute(oldName, (msg) => console.warn(`[worker] warning: ${msg}`));
+  for (const id of await listProjectContainers(oldName, { all: true })) {
+    await dockerRemoveContainer(id).catch((err) =>
+      console.warn(`[worker] warning: failed to remove ${id}: ${err.message}`),
+    );
+  }
+
+  if (live?.image_tag) {
+    // Same trick as rollback: pre-filled image_tag skips clone+build.
+    const redeploy = await createDeployment(projectId, {
+      commitSha: live.commit_sha,
+      commitMessage: live.commit_message,
+      imageTag: live.image_tag,
+    });
+    await updateDeployment(live.id, { status: "stopped", finished_at: new Date() });
+    await runDeployment(redeploy.id);
+  }
+  console.log(`[worker] rename to '${project.name}' complete`);
+}
+
 export async function removeProject(projectId: string): Promise<void> {
   const project = await getProjectById(projectId);
   if (!project) return; // already gone — removal is idempotent

@@ -39,6 +39,19 @@ export async function getProjectById(id: string): Promise<Project | null> {
   return rows[0] ?? null;
 }
 
+export async function updateProject(
+  id: string,
+  patch: Partial<Pick<Project, "name" | "branch" | "port">>,
+): Promise<Project> {
+  const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  const sets = entries.map(([k], i) => `${k} = $${i + 2}`).join(", ");
+  const { rows } = await pool.query<Project>(
+    `update projects set ${sets} where id = $1 returning *`,
+    [id, ...entries.map(([, v]) => v)],
+  );
+  return rows[0]!;
+}
+
 /** Cascades: deployments, build_logs, and routes rows go with the project. */
 export async function deleteProject(id: string): Promise<void> {
   await pool.query("delete from projects where id = $1", [id]);
