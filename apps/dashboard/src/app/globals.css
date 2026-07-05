@@ -12,7 +12,9 @@
   --text: #f2f2f2;
   --dim: #a1a1aa;
   --faint: #71717a;
-  --link: #7cb8ff;
+  --accent: #ffb224;
+  --accent-soft: #fdc65b;
+  --link: var(--accent-soft);
 
   --st-live: #4ade80;
   --st-building: #f5c542;
@@ -102,6 +104,7 @@ a:hover {
 .brand::before {
   content: "▲ ";
   font-size: 13px;
+  color: var(--accent);
 }
 .tagline {
   color: var(--faint);
@@ -175,7 +178,7 @@ h2 {
 }
 .stat.stat-live .stat-value { color: var(--st-live); }
 .stat.stat-failed .stat-value { color: var(--st-failed); }
-.stat.stat-accent .stat-value { color: var(--text); }
+.stat.stat-accent .stat-value { color: var(--accent); }
 
 /* ---- project cards (no table, nothing to scroll) ---- */
 
@@ -353,14 +356,14 @@ table.data td:last-child {
   cursor: default;
 }
 .btn-primary {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #171205;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #d4d4d8;
-  border-color: #d4d4d8;
-  color: var(--bg);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: #171205;
 }
 .btn-primary:disabled {
   background: var(--border);
