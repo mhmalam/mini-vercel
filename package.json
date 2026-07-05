@@ -12,6 +12,7 @@
     "migrate": "npm run migrate -w packages/db",
     "dev:api": "npm run dev -w apps/api",
     "dev:worker": "npm run dev -w apps/worker",
+    "dev:dashboard": "npm run dev -w apps/dashboard",
     "build:cli": "npm run build -w apps/cli",
     "typecheck": "tsc -p packages/shared --noEmit && tsc -p packages/db --noEmit && tsc -p apps/api --noEmit && tsc -p apps/worker --noEmit && tsc -p apps/cli --noEmit"
   },
