@@ -78,6 +78,7 @@ npm install && npm run build:cli
 cp .env.example .env
 # edit .env:
 #   DEPLOY_API_TOKEN=<long random string — this is root on the box>
+#   DASHBOARD_PASSWORD=<required: the dashboard can deploy code, lock it>
 #   DEPLOY_BASE_DOMAIN=deploy.malam.me
 #   DEPLOY_PUBLIC_SCHEME=https
 #   DEPLOY_PUBLIC_PORT_SUFFIX=

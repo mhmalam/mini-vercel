@@ -1,25 +1,28 @@
-/* mini-vercel dashboard — dark, terminal-adjacent, deliberately thin.
-   Neutrals are tinted toward green (phosphor heritage), accents stay muted. */
+/* mini-vercel dashboard — a control plane, styled like one: night-cockpit
+   slate with amber instrument accents. Sans for prose, mono for data. */
 
 :root {
-  --bg: #0f120f;
-  --bg-raised: #151a15;
-  --bg-log: #0b0e0b;
-  --border: #262d26;
-  --border-strong: #3a453a;
-  --text: #d3dacf;
-  --dim: #7c877a;
-  --faint: #59645a;
-  --accent: #a4c77f;
-  --accent-dim: #708d54;
+  --bg: #11151c;
+  --bg-raised: #181d27;
+  --bg-log: #0c0f15;
+  --border: #2a3140;
+  --border-strong: #475267;
+  --text: #e9ebf1;
+  --dim: #aab1c0;
+  --faint: #8890a1;
+  --accent: #ffb224;
+  --accent-dim: #c78a1e;
 
-  --st-live: #8ec97d;
-  --st-building: #d9b36c;
-  --st-deploying: #d9b36c;
-  --st-queued: #9aa5b1;
-  --st-failed: #e0796e;
-  --st-stopped: #6f7a6e;
-  --st-rolled_back: #b58cc9;
+  --st-live: #56d97e;
+  --st-building: #fbbf24;
+  --st-deploying: #fbbf24;
+  --st-queued: #97a6bc;
+  --st-failed: #f87171;
+  --st-stopped: #7e8798;
+  --st-rolled_back: #c08cf0;
+
+  --sans: system-ui, "Segoe UI", -apple-system, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
 }
 
 * {
@@ -34,9 +37,23 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
-  font-size: 13px;
-  line-height: 1.65;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Data reads as data: ids, paths, urls, logs, form inputs stay monospace. */
+table.data td,
+dl.meta,
+.logs,
+.new-project input {
+  font-family: var(--mono);
+  font-size: 13.5px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 a {
@@ -72,7 +89,7 @@ a:hover {
   letter-spacing: 0.02em;
 }
 .brand::before {
-  content: "▲ ";
+  content: "◆ ";
   color: var(--accent);
 }
 .brand:hover {
@@ -86,7 +103,7 @@ a:hover {
 /* ---- headings / text ---- */
 
 h1 {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 700;
   margin: 0 0 4px;
 }
@@ -96,7 +113,7 @@ h2 {
   color: var(--dim);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin: 56px 0 12px;
+  margin: 56px 0 16px;
 }
 .muted {
   color: var(--dim);
@@ -137,14 +154,20 @@ table.data th {
   color: var(--faint);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 11px;
-  padding: 0 20px 8px 0;
+  font-size: 12px;
+  padding: 0 20px 10px 0;
   border-bottom: 1px solid var(--border-strong);
 }
 table.data td {
-  padding: 9px 20px 9px 0;
+  padding: 13px 20px 13px 0;
   border-bottom: 1px solid var(--border);
   vertical-align: baseline;
+}
+table.data tbody tr {
+  transition: background-color 0.15s ease-out;
+}
+table.data tbody tr:hover {
+  background: var(--bg-raised);
 }
 table.data th:last-child,
 table.data td:last-child {
@@ -194,8 +217,9 @@ td.grow {
   background: transparent;
   border: 1px solid var(--accent-dim);
   border-radius: 2px;
-  padding: 2px 12px;
+  padding: 6px 16px;
   cursor: pointer;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out;
 }
 .btn:hover:not(:disabled) {
   background: var(--accent);
@@ -217,24 +241,27 @@ td.grow {
 .new-project label {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
   color: var(--faint);
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 .new-project input {
-  font: inherit;
-  font-size: 13px;
+  font-family: var(--mono);
+  font-size: 13.5px;
   color: var(--text);
   background: var(--bg-raised);
   border: 1px solid var(--border-strong);
   border-radius: 2px;
-  padding: 4px 8px;
+  padding: 8px 10px;
+}
+.new-project input::placeholder {
+  color: var(--faint);
 }
 .new-project input:focus {
   outline: none;
-  border-color: var(--accent-dim);
+  border-color: var(--accent);
 }
 .new-project .grow-field {
   flex: 1 1 260px;
@@ -267,11 +294,11 @@ dl.meta dd {
   background: var(--bg-log);
   border: 1px solid var(--border);
   border-radius: 3px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   max-height: 65vh;
   overflow-y: auto;
-  font-size: 12.5px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.6;
 }
 .logs .line {
   white-space: pre-wrap;
