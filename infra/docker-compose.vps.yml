@@ -13,7 +13,10 @@ services:
     ports: !override []
     extra_hosts: !override
       - "host.docker.internal:127.0.0.1"
+    # NOTE: vps-tls.conf is COPIED to nginx/conf.d/99-tls.conf during
+    # provisioning (see infra/provision.md) rather than mounted — Docker
+    # can't create a file mountpoint inside the read-only conf.d mount.
+    # 99-*.conf is gitignored so local dev never loads it.
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/certs:/etc/nginx/certs:ro
-      - ./nginx/vps-tls.conf:/etc/nginx/conf.d/99-tls.conf:ro
