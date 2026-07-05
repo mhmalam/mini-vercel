@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { SESSION_COOKIE, safeEqual, sessionToken } from "./auth";
 import {
   createDeployment,
   createProject,
@@ -15,6 +17,33 @@ import {
 
 export interface ActionResult {
   error?: string;
+}
+
+export interface LoginState {
+  error?: string;
+}
+
+/** Verify the dashboard password and set the session cookie (30 days). */
+export async function login(
+  _prev: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const password = process.env.DASHBOARD_PASSWORD;
+  if (!password) redirect("/"); // auth disabled — nothing to log into
+
+  const supplied = String(formData.get("password") ?? "");
+  if (!safeEqual(supplied, password)) {
+    return { error: "wrong password" };
+  }
+  const jar = await cookies();
+  jar.set(SESSION_COOKIE, await sessionToken(password), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
+  redirect("/");
 }
 
 const message = (err: unknown) =>
