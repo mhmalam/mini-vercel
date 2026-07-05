@@ -14,10 +14,12 @@ export default function EditProject({
   project,
   branch,
   port,
+  customDomain,
 }: {
   project: string;
   branch: string;
   port: number;
+  customDomain?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const action = editProject.bind(null, project);
@@ -68,6 +70,14 @@ export default function EditProject({
                   max={65535}
                   defaultValue={port}
                   required
+                />
+              </label>
+              <label>
+                custom domains (optional, space-separated)
+                <input
+                  name="customDomain"
+                  defaultValue={customDomain ?? ""}
+                  placeholder="malam.me www.malam.me"
                 />
               </label>
               {state.error && <p className="form-error">error: {state.error}</p>}

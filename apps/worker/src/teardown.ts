@@ -14,7 +14,7 @@ import {
   pruneProjectImages,
 } from "./docker.js";
 import { LogSink } from "./logsink.js";
-import { removeRoute } from "./routing.js";
+import { removeRoute, switchRoute } from "./routing.js";
 
 /**
  * Take a project offline: drop its route (nginx returns 404 for the
@@ -88,6 +88,24 @@ export async function renameProject(
     await runDeployment(redeploy.id);
   }
   console.log(`[worker] rename to '${project.name}' complete`);
+}
+
+/**
+ * Rewrite a live project's nginx block without touching its container —
+ * used when custom domains change. No live deployment = nothing to route.
+ */
+export async function rerouteProject(projectId: string): Promise<void> {
+  const project = await getProjectById(projectId);
+  if (!project) return;
+  const live = await getLiveDeployment(projectId);
+  if (!live?.host_port) return;
+  console.log(`[worker] rerouting '${project.name}' (custom domains changed)`);
+  await switchRoute({
+    project,
+    deploymentId: live.id,
+    hostPort: live.host_port,
+    onWarning: (msg) => console.warn(`[worker] warning: ${msg}`),
+  });
 }
 
 export async function removeProject(projectId: string): Promise<void> {

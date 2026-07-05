@@ -12,6 +12,7 @@ export interface Project {
   repo_url: string;
   branch: string;
   port: number;
+  custom_domain: string | null;
   created_at: string;
 }
 
@@ -110,7 +111,7 @@ export const removeProject = (project: string) =>
 
 export const updateProject = (
   project: string,
-  patch: { name?: string; branch?: string; port?: number },
+  patch: { name?: string; branch?: string; port?: number; customDomain?: string },
 ) => api<Project>("PATCH", `/api/projects/${encodeURIComponent(project)}`, patch);
 
 export const getDeployment = (id: string) =>

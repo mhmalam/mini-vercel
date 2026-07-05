@@ -41,9 +41,16 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
 export async function updateProject(
   id: string,
-  patch: Partial<Pick<Project, "name" | "branch" | "port">>,
+  patch: Partial<Pick<Project, "name" | "branch" | "port" | "custom_domain">>,
 ): Promise<Project> {
   const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  if (entries.length === 0) {
+    const { rows } = await pool.query<Project>(
+      "select * from projects where id = $1",
+      [id],
+    );
+    return rows[0]!;
+  }
   const sets = entries.map(([k], i) => `${k} = $${i + 2}`).join(", ");
   const { rows } = await pool.query<Project>(
     `update projects set ${sets} where id = $1 returning *`,

@@ -118,7 +118,7 @@ export async function runDeployment(deploymentId: string): Promise<void> {
     // ---- route: point <project>.<domain> at the new container ----
     log.system(`routing ${project.name}.${config.baseDomain} -> 127.0.0.1:${hostPort}`);
     await switchRoute({
-      projectName: project.name,
+      project,
       deploymentId,
       hostPort,
       onWarning: (msg) => log.system(`warning: ${msg}`),

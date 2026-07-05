@@ -136,15 +136,33 @@ app.post<{ Params: { name: string } }>(
 // Edit a project. branch/port take effect on the next deploy. A name change
 // also re-homes the subdomain: the worker retires the old route/containers
 // and redeploys the current image under the new name (brief downtime).
+const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+
 app.patch<{
   Params: { name: string };
-  Body: { name?: string; branch?: string; port?: number };
+  Body: { name?: string; branch?: string; port?: number; customDomain?: string };
 }>("/api/projects/:name", async (req, reply) => {
   const project = await getProjectByName(req.params.name);
   if (!project) {
     return reply.code(404).send({ error: "project not found" });
   }
-  const { name, branch, port } = req.body ?? {};
+  const { name, branch, port, customDomain } = req.body ?? {};
+
+  // customDomain: space/comma-separated hostnames; "" clears. Rewrites the
+  // live nginx block via a reroute job so it applies without a redeploy.
+  let customDomainValue: string | null | undefined;
+  if (customDomain !== undefined) {
+    const domains = customDomain
+      .toLowerCase()
+      .split(/[\s,]+/)
+      .filter(Boolean);
+    for (const d of domains) {
+      if (!DOMAIN_RE.test(d)) {
+        return reply.code(400).send({ error: `'${d}' is not a valid hostname` });
+      }
+    }
+    customDomainValue = domains.length ? domains.join(" ") : null;
+  }
   if (name !== undefined && !PROJECT_NAME_RE.test(name)) {
     return reply.code(400).send({
       error: "name must be a DNS-safe label (a-z, 0-9, -)",
@@ -157,12 +175,26 @@ app.patch<{
   if (renaming && (await getProjectByName(name!))) {
     return reply.code(409).send({ error: `project '${name}' already exists` });
   }
-  const updated = await updateProject(project.id, { name, branch, port });
+  const updated = await updateProject(project.id, {
+    name,
+    branch,
+    port,
+    custom_domain: customDomainValue,
+  });
   if (renaming) {
     await buildQueue.add(
       "rename",
       { projectId: project.id, oldName: project.name, action: "rename" },
       { jobId: `rename-${project.id}-${name}` },
+    );
+  } else if (
+    customDomainValue !== undefined &&
+    customDomainValue !== project.custom_domain
+  ) {
+    await buildQueue.add(
+      "reroute",
+      { projectId: project.id, action: "reroute" },
+      { jobId: `reroute-${project.id}-${Date.now()}` },
     );
   }
   return updated;

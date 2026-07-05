@@ -97,7 +97,12 @@ export default async function HomePage() {
                     {p.name}
                   </Link>
                   <span className="card-top-side">
-                    <EditProject project={p.name} branch={p.branch} port={p.port} />
+                    <EditProject
+                      project={p.name}
+                      branch={p.branch}
+                      port={p.port}
+                      customDomain={p.custom_domain}
+                    />
                     {d ? (
                       <Link href={`/deployments/${d.id}`}>
                         <StatusBadge status={d.status} />

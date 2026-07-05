@@ -6,6 +6,8 @@ export interface Project {
   repo_url: string;
   branch: string;
   port: number;
+  /** Extra hostnames this project serves, space-separated (may be null). */
+  custom_domain: string | null;
   created_at: Date;
 }
 

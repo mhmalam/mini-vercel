@@ -91,6 +91,8 @@ export async function editProject(
   const name = String(formData.get("name") ?? "").trim();
   const branch = String(formData.get("branch") ?? "").trim();
   const port = Number(String(formData.get("port") ?? "").trim());
+  // always sent, "" clears the custom domains
+  const customDomain = String(formData.get("customDomain") ?? "").trim();
 
   let updated;
   try {
@@ -98,6 +100,7 @@ export async function editProject(
       name: name || undefined,
       branch: branch || undefined,
       port: Number.isInteger(port) && port > 0 ? port : undefined,
+      customDomain,
     });
   } catch (err) {
     return { error: message(err) };

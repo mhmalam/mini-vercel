@@ -44,6 +44,18 @@ export default async function ProjectPage({
               <Globe size={13} />
               {url.replace(/^https?:\/\//, "")}
             </a>
+            {project.custom_domain?.split(/\s+/).map((d) => (
+              <a
+                key={d}
+                className="icon-label"
+                href={`https://${d}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Globe size={13} />
+                {d}
+              </a>
+            ))}
           </p>
         </div>
         <span className="head-actions">
@@ -51,6 +63,7 @@ export default async function ProjectPage({
             project={project.name}
             branch={project.branch}
             port={project.port}
+            customDomain={project.custom_domain}
           />
           <ActionButtons
             project={project.name}

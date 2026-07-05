@@ -12,7 +12,7 @@ export interface BuildJobData {
   deploymentId?: string;
   projectId?: string;
   oldName?: string;
-  action?: "deploy" | "stop" | "remove" | "rename";
+  action?: "deploy" | "stop" | "remove" | "rename" | "reroute";
 }
 
 export const DEPLOYMENT_STATUSES = [
