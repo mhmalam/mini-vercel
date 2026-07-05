@@ -36,7 +36,7 @@ export default function RootLayout({
               mini-vercel
             </Link>
             <span className="tagline">control plane</span>
-            <span className="site-side">single-box PaaS · self-hosted</span>
+            <span className="site-side" />
             <ThemeToggle />
           </div>
         </header>
