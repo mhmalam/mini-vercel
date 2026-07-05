@@ -1,0 +1,26 @@
+{
+  "name": "mini-vercel",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "migrate": "npm run migrate -w packages/db",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:worker": "npm run dev -w apps/worker",
+    "build:cli": "npm run build -w apps/cli",
+    "typecheck": "tsc -p packages/shared --noEmit && tsc -p packages/db --noEmit && tsc -p apps/api --noEmit && tsc -p apps/worker --noEmit && tsc -p apps/cli --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
