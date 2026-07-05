@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Plus } from "lucide-react";
 import { addProject, type AddProjectState } from "@/lib/actions";
 import type { GithubRepo } from "@/lib/github";
 
@@ -101,7 +102,10 @@ export default function NewProjectForm({ repos }: { repos: GithubRepo[] }) {
         <input name="port" type="number" min={1} max={65535} placeholder="3000" size={6} />
       </label>
       <button type="submit" className="btn" disabled={pending || (!manual && !repoUrl)}>
-        {pending ? "registering…" : "register"}
+        <span className="icon-label">
+          <Plus size={13} />
+          {pending ? "registering…" : "register"}
+        </span>
       </button>
       {state.error && <p className="form-error">error: {state.error}</p>}
     </form>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FileText, GitBranch, Globe } from "lucide-react";
 import ActionButtons from "@/components/ActionButtons";
 import AutoRefresh from "@/components/AutoRefresh";
 import StatusBadge from "@/components/StatusBadge";
@@ -30,15 +31,15 @@ export default async function ProjectPage({
       <div className="page-head">
         <div>
           <h1>{project.name}</h1>
-          <p>
+          <p className="icon-label">
+            <GitBranch size={13} />
             <span className="trunc" title={project.repo_url}>
               {project.repo_url.replace(/^https:\/\/github\.com\//, "")}
             </span>{" "}
             <span className="faint">({project.branch})</span>
-            {" · container port "}
-            {project.port}
-            {" · "}
-            <a href={url} target="_blank" rel="noreferrer">
+            <span className="faint">· port {project.port} ·</span>
+            <a className="icon-label" href={url} target="_blank" rel="noreferrer">
+              <Globe size={13} />
               {url.replace(/^https?:\/\//, "")}
             </a>
           </p>
@@ -81,7 +82,9 @@ export default async function ProjectPage({
                     {new Date(d.created_at).toLocaleString()}
                   </td>
                   <td>
-                    <Link href={`/deployments/${d.id}`}>logs →</Link>
+                    <Link className="icon-label" href={`/deployments/${d.id}`}>
+                      <FileText size={12} /> logs
+                    </Link>
                   </td>
                 </tr>
               ))}

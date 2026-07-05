@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Activity, CircleAlert, Clock, FolderGit2, GitBranch, Globe } from "lucide-react";
 import ActionButtons from "@/components/ActionButtons";
 import AutoRefresh from "@/components/AutoRefresh";
 import NewProjectForm from "@/components/NewProjectForm";
@@ -29,15 +30,21 @@ export default async function HomePage() {
       <div className="stats">
         <div className="stat">
           <div className="stat-value">{projects.length}</div>
-          <div className="stat-label">projects</div>
+          <div className="stat-label icon-label">
+            <FolderGit2 size={13} /> projects
+          </div>
         </div>
         <div className={`stat ${liveCount > 0 ? "stat-live" : ""}`}>
           <div className="stat-value">{liveCount}</div>
-          <div className="stat-label">live</div>
+          <div className="stat-label icon-label">
+            <Activity size={13} /> live
+          </div>
         </div>
         <div className={`stat ${failedCount > 0 ? "stat-failed" : ""}`}>
           <div className="stat-value">{failedCount}</div>
-          <div className="stat-label">failed</div>
+          <div className="stat-label icon-label">
+            <CircleAlert size={13} /> failed
+          </div>
         </div>
         <div className="stat stat-accent">
           <div className="stat-value">
@@ -48,7 +55,9 @@ export default async function HomePage() {
                 })
               : "—"}
           </div>
-          <div className="stat-label">last deploy</div>
+          <div className="stat-label icon-label">
+            <Clock size={13} /> last deploy
+          </div>
         </div>
       </div>
 
@@ -85,10 +94,12 @@ export default async function HomePage() {
                     <span className="faint">never deployed</span>
                   )}
                 </div>
-                <span className="card-repo" title={p.repo_url}>
+                <span className="card-repo icon-label" title={p.repo_url}>
+                  <GitBranch size={12} />
                   {p.repo_url.replace(/^https:\/\/github\.com\//, "")} ({p.branch})
                 </span>
-                <a className="card-url" href={url} target="_blank" rel="noreferrer">
+                <a className="card-url icon-label" href={url} target="_blank" rel="noreferrer">
+                  <Globe size={12} />
                   {url.replace(/^https?:\/\//, "")}
                 </a>
                 <div className="card-actions">

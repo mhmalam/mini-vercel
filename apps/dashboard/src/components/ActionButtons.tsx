@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Rocket, Square, Undo2 } from "lucide-react";
 import { deploy, rollback, stopProject, type ActionResult } from "@/lib/actions";
 
 type Kind = "deploy" | "rollback" | "stop";
@@ -10,6 +11,12 @@ const LABEL: Record<Kind, [idle: string, busy: string]> = {
   deploy: ["deploy", "queuing…"],
   rollback: ["rollback", "queuing…"],
   stop: ["stop", "stopping…"],
+};
+
+const ICON: Record<Kind, React.ReactNode> = {
+  deploy: <Rocket size={13} />,
+  rollback: <Undo2 size={13} />,
+  stop: <Square size={11} fill="currentColor" />,
 };
 
 const RUN: Record<Kind, (project: string) => Promise<ActionResult>> = {
@@ -65,7 +72,10 @@ export default function ActionButtons({
           disabled={pending}
           onClick={() => run(kind)}
         >
-          {busy === kind ? LABEL[kind][1] : LABEL[kind][0]}
+          <span className="icon-label">
+            {ICON[kind]}
+            {busy === kind ? LABEL[kind][1] : LABEL[kind][0]}
+          </span>
         </button>
       ))}
       {error && <span className="error-text">error: {error}</span>}
