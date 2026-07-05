@@ -1,12 +1,21 @@
 import Link from "next/link";
-import { Activity, CircleAlert, Clock, FolderGit2, GitBranch, Globe } from "lucide-react";
+import {
+  Activity,
+  CircleAlert,
+  Clock,
+  FolderGit2,
+  GitBranch,
+  GitCommitHorizontal,
+  Globe,
+} from "lucide-react";
 import ActionButtons from "@/components/ActionButtons";
+import GithubMark from "@/components/GithubMark";
 import AutoRefresh from "@/components/AutoRefresh";
 import NewProjectForm from "@/components/NewProjectForm";
 import StatusBadge from "@/components/StatusBadge";
 import { listDeployments, listProjects, publicUrl } from "@/lib/api";
 import { listGithubRepos } from "@/lib/github";
-import { isInFlight } from "@/lib/status";
+import { githubSlug, isInFlight, timeAgo } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
 
@@ -94,14 +103,39 @@ export default async function HomePage() {
                     <span className="faint">never deployed</span>
                   )}
                 </div>
-                <span className="card-repo icon-label" title={p.repo_url}>
-                  <GitBranch size={12} />
-                  {p.repo_url.replace(/^https:\/\/github\.com\//, "")} ({p.branch})
-                </span>
+                {githubSlug(p.repo_url) ? (
+                  <a
+                    className="repo-pill icon-label"
+                    href={`https://github.com/${githubSlug(p.repo_url)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <GithubMark size={12} />
+                    {githubSlug(p.repo_url)}
+                  </a>
+                ) : (
+                  <span className="card-repo icon-label" title={p.repo_url}>
+                    <GitBranch size={12} />
+                    {p.repo_url}
+                  </span>
+                )}
                 <a className="card-url icon-label" href={url} target="_blank" rel="noreferrer">
                   <Globe size={12} />
                   {url.replace(/^https?:\/\//, "")}
                 </a>
+                {d && (
+                  <div className="card-commit">
+                    {d.commit_message && (
+                      <div className="card-commit-msg icon-label" title={d.commit_message}>
+                        <GitCommitHorizontal size={13} />
+                        <span className="trunc-line">{d.commit_message}</span>
+                      </div>
+                    )}
+                    <div className="card-commit-when icon-label">
+                      {timeAgo(d.created_at)} on <GitBranch size={11} /> {p.branch}
+                    </div>
+                  </div>
+                )}
                 <div className="card-actions">
                   <ActionButtons
                     project={p.name}

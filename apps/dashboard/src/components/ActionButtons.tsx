@@ -37,15 +37,10 @@ export default function ActionButtons({
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<Kind | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingStop, setConfirmingStop] = useState(false);
   const router = useRouter();
 
-  const run = (kind: Kind) => {
-    if (
-      kind === "stop" &&
-      !window.confirm(`Take '${project}' offline? Its URL will 404 until the next deploy.`)
-    ) {
-      return;
-    }
+  const execute = (kind: Kind) => {
     setBusy(kind);
     setError(null);
     startTransition(async () => {
@@ -56,8 +51,59 @@ export default function ActionButtons({
     });
   };
 
+  const run = (kind: Kind) => {
+    if (kind === "stop") setConfirmingStop(true);
+    else execute(kind);
+  };
+
   return (
     <div className="actions">
+      {confirmingStop && (
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmingStop(false)}
+          role="presentation"
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stop-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="stop-title">
+              Take <span className="mono">{project}</span> offline?
+            </h3>
+            <p>
+              Its containers will be stopped and the URL will return 404 until
+              the next deploy. Nothing is deleted — deploying brings it right
+              back.
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setConfirmingStop(false)}
+                autoFocus
+              >
+                cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => {
+                  setConfirmingStop(false);
+                  execute("stop");
+                }}
+              >
+                <span className="icon-label">
+                  <Square size={11} fill="currentColor" /> take offline
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {kinds.map((kind) => (
         <button
           key={kind}

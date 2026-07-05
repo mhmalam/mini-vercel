@@ -55,13 +55,22 @@ export async function listProjects(): Promise<Project[]> {
  */
 export async function createDeployment(
   projectId: string,
-  prefill: { commitSha?: string | null; imageTag?: string | null } = {},
+  prefill: {
+    commitSha?: string | null;
+    commitMessage?: string | null;
+    imageTag?: string | null;
+  } = {},
 ): Promise<Deployment> {
   const { rows } = await pool.query<Deployment>(
-    `insert into deployments (project_id, status, commit_sha, image_tag)
-     values ($1, 'queued', $2, $3)
+    `insert into deployments (project_id, status, commit_sha, commit_message, image_tag)
+     values ($1, 'queued', $2, $3, $4)
      returning *`,
-    [projectId, prefill.commitSha ?? null, prefill.imageTag ?? null],
+    [
+      projectId,
+      prefill.commitSha ?? null,
+      prefill.commitMessage ?? null,
+      prefill.imageTag ?? null,
+    ],
   );
   return rows[0]!;
 }
@@ -136,6 +145,7 @@ export async function updateDeployment(
     Pick<
       Deployment,
       | "commit_sha"
+      | "commit_message"
       | "status"
       | "image_tag"
       | "container_id"

@@ -28,7 +28,10 @@ export default function LogViewer({
   const router = useRouter();
 
   const paneRef = useRef<HTMLDivElement>(null);
-  const stickRef = useRef(true); // follow the tail until the user scrolls up
+  // Follow the tail only while the deployment is running. For a finished
+  // deployment the story starts at the top (clone → build → ...), so jumping
+  // to the bottom would hide everything but the last lines.
+  const stickRef = useRef(isInFlight(initialStatus));
   const afterRef = useRef(0);
 
   useEffect(() => {

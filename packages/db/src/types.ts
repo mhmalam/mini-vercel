@@ -13,6 +13,7 @@ export interface Deployment {
   id: string;
   project_id: string;
   commit_sha: string | null;
+  commit_message: string | null;
   status: DeploymentStatus;
   image_tag: string | null;
   container_id: string | null;

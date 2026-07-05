@@ -22,6 +22,7 @@ export default async function ProjectPage({
 
   const deployments = await listDeployments(name, 50);
   const anyInFlight = deployments.some((d) => isInFlight(d.status));
+  const hasLive = deployments.some((d) => d.status === "live");
   const url = publicUrl(name);
 
   return (
@@ -44,7 +45,10 @@ export default async function ProjectPage({
             </a>
           </p>
         </div>
-        <ActionButtons project={project.name} kinds={["deploy", "rollback", "stop"]} />
+        <ActionButtons
+          project={project.name}
+          kinds={hasLive ? ["deploy", "rollback", "stop"] : ["deploy", "rollback"]}
+        />
       </div>
 
       {deployments.length === 0 ? (

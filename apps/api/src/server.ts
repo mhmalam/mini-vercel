@@ -120,6 +120,7 @@ app.post<{ Params: { name: string } }>(
     }
     const deployment = await createDeployment(project.id, {
       commitSha: target.commit_sha,
+      commitMessage: target.commit_message,
       imageTag: target.image_tag,
     });
     await buildQueue.add(

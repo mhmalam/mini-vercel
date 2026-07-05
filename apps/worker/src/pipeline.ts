@@ -75,8 +75,14 @@ export async function runDeployment(deploymentId: string): Promise<void> {
         { onLine: (s, l) => log.write(s, l), timeoutMs: config.buildTimeoutMs },
       );
       const sha = (await exec("git", ["-C", workdir, "rev-parse", "HEAD"])).trim();
-      await updateDeployment(deploymentId, { commit_sha: sha });
-      log.system(`checked out ${sha.slice(0, 12)}`);
+      const subject = (
+        await exec("git", ["-C", workdir, "log", "-1", "--format=%s"])
+      ).trim();
+      await updateDeployment(deploymentId, {
+        commit_sha: sha,
+        commit_message: subject || null,
+      });
+      log.system(`checked out ${sha.slice(0, 12)} — ${subject}`);
 
       // ---- build ----
       imageTag = `${project.name}:${deploymentId.slice(0, 8)}`;
