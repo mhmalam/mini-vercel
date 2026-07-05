@@ -1,120 +1,112 @@
-# VPS provisioning runbook
+# Server provisioning runbook (as built)
 
-Goal: the same stack that runs on the laptop, on a VPS, with
-`https://<project>.deploy.malam.me` in front of it. Everything below the
-"one-time account setup" section can be done in one sitting.
+This is how the production box was actually set up on 2026-07-05 — kept
+accurate so the server can be rebuilt from nothing. The original plan said
+Ubuntu + Cloudflare DNS; reality turned out to be Amazon Linux + Vercel DNS,
+and the differences bit hard enough to document.
 
-## 0. One-time account setup (only you can do these)
+The box: AWS EC2 in us-east-1, Amazon Linux 2023, 1 GB RAM (t3.micro class)
++ 2 GB swap, 30 GB gp3, an Elastic IP, default user `ec2-user`. Security
+Group inbound: 22 (my IP only), 80, 443. That SG *is* the firewall — AL2023
+ships no ufw and doesn't need one here.
 
-1. **VPS** — two free-ish options; the platform runs 24/7 on either:
-   - [Oracle Cloud Always Free](https://www.oracle.com/cloud/free/): **Ampere A1**
-     instance (up to 4 ARM cores / 24 GB RAM, free forever). Ubuntu 24.04.
-     Note: ARM — Docker images must be arm64 (Node base images are).
-   - **AWS EC2**: launch Ubuntu 24.04 on a t3.small (2 GB RAM) if you can spend
-     ~$15/mo, or the free-plan t3.micro/t4g.small (1-2 GB) with 2 GB swap.
-     EC2 specifics:
-     - Security Group inbound: 22 (your IP only), 80, 443. Nothing else —
-       the API/dashboard are reached through nginx, not their own ports.
-     - Allocate an **Elastic IP** and associate it, or your IP changes on
-       every stop/start and DNS breaks.
-     - Set a $1 billing alarm + swap on day one:
-       `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`
-       (persist in /etc/fstab: `/swapfile none swap sw 0 0`).
-2. **DNS**: find where `malam.me`'s DNS is hosted (whoever answers
-   `nslookup -type=NS malam.me`). You need API access for the DNS-01 cert
-   challenge — if it's not Cloudflare, consider delegating just DNS to
-   Cloudflare's free tier (registrar stays put; only nameservers change).
-   **Do not touch apex/`www` records — the portfolio lives there.**
-3. Add DNS records once the VPS has a public IP:
-   - `A  deploy.malam.me      -> <VPS IP>`
-   - `A  *.deploy.malam.me    -> <VPS IP>`
+## 0. Accounts / DNS (one-time)
 
-## 1. Base box hardening (ssh in as ubuntu/opc)
+- malam.me's nameservers are Vercel's (`ns1/ns2.vercel-dns.com`), so cert
+  issuance goes through the Vercel DNS API: create an API token, and note
+  the **team ID** (`v2/teams` endpoint) — API calls without `teamId` get 403
+  because the domain lives under the default team.
+- DNS records (Vercel dashboard or API): `A deploy -> <elastic-ip>`,
+  `A *.deploy -> <elastic-ip>`, `A * -> <elastic-ip>` (projects live at
+  `<name>.malam.me`), and — after the portfolio migration — `A @` and
+  `A www` to the same IP.
+- Billing alarm in AWS. Do it. It's two clicks.
+
+## 1. Base system (AL2023, run as root)
 
 ```sh
-sudo apt update && sudo apt upgrade -y
-# firewall: SSH + HTTP + HTTPS only
-sudo ufw default deny incoming
-sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
-# Docker (official convenience script is fine for a single box)
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER   # re-login after this
-# Node 22 (runs api/worker; they are NOT containerized in v1)
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs git
+dnf update -y
+dnf install -y docker git cronie          # cronie: AL2023 has no cron!
+systemctl enable --now docker crond
+usermod -aG docker ec2-user
+# docker compose v2 plugin (not in AL2023's docker package)
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose && chmod +x $_
+# 2G swap — mandatory on 1GB or Next.js builds OOM
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+# Node 22
+curl -fsSL https://rpm.nodesource.com/setup_22.x | bash - && dnf install -y nodejs
+# lego (ACME client; v5 — the CLI changed a lot from v4)
+# grab latest linux_amd64 tar from https://github.com/go-acme/lego/releases into /usr/local/bin
 ```
 
-Oracle gotcha: their images also run iptables rules managed by cloud-init, and
-the subnet has a Security List — open 80/443 in **both** the VCN Security List
-and ufw or nothing gets through.
+## 2. Wildcard cert (lego v5 + Vercel DNS)
 
-## 2. Wildcard cert (Let's Encrypt DNS-01, one cert, one renewal cron)
-
-With Cloudflare-hosted DNS (recommended path):
+Token + team id live in `~/.mv-lego.env` (chmod 600, sourced by the renew
+script — never in the repo):
 
 ```sh
-curl https://get.acme.sh | sh -s email=info@lionstack.org
-export CF_Token="<cloudflare api token with DNS edit on malam.me>"
-~/.acme.sh/acme.sh --issue --dns dns_cf -d 'deploy.malam.me' -d '*.deploy.malam.me'
-# install to a stable path nginx can mount
-mkdir -p ~/mini-vercel/infra/nginx/certs
-~/.acme.sh/acme.sh --install-cert -d deploy.malam.me \
-  --key-file       ~/mini-vercel/infra/nginx/certs/deploy.malam.me.key \
-  --fullchain-file ~/mini-vercel/infra/nginx/certs/deploy.malam.me.pem \
-  --reloadcmd      "docker exec mini-vercel-nginx nginx -s reload"
+export VERCEL_API_TOKEN=...
+export VERCEL_TEAM_ID=team_...
 ```
 
-acme.sh installs its own renewal cron; the `--reloadcmd` makes renewals
-hot-reload nginx. Done — never think about certs again.
+Issue (v5 syntax: flags live under `run`, data dir via `LEGO_PATH`; note
+Let's Encrypt rejects `deploy.malam.me` alongside `*.malam.me` — the
+wildcard already covers it):
 
-## 3. Deploy the platform itself
+```sh
+source ~/.mv-lego.env
+LEGO_PATH=~/.lego lego run --accept-tos -m info@lionstack.org --dns vercel \
+  -d "malam.me" -d "*.malam.me" -d "*.deploy.malam.me"
+cp ~/.lego/certificates/malam.me.crt ~/mini-vercel/infra/nginx/certs/deploy.malam.me.pem
+cp ~/.lego/certificates/malam.me.key ~/mini-vercel/infra/nginx/certs/deploy.malam.me.key
+```
+
+Renewal: `~/renew-cert.sh` runs the same `lego run` (v5 renews only when
+due), re-copies, reloads nginx; daily crontab at 03:14. The CAA record
+`0 issue "letsencrypt.org"` in the DNS must stay or issuance breaks.
+
+## 3. The platform
 
 ```sh
 git clone https://github.com/mhmalam/mini-vercel ~/mini-vercel && cd ~/mini-vercel
-npm install && npm run build:cli
-cp .env.example .env
-# edit .env:
-#   DEPLOY_API_TOKEN=<long random string — this is root on the box>
-#   DASHBOARD_PASSWORD=<required: the dashboard can deploy code, lock it>
-#   DEPLOY_BASE_DOMAIN=deploy.malam.me
+npm install && npm run build:cli && npm run build -w apps/dashboard
+cp .env.example .env   # then set:
+#   DEPLOY_API_TOKEN=<long random — this is root on the box>
+#   DASHBOARD_PASSWORD=<the login page checks this>
+#   GITHUB_WEBHOOK_SECRET=<random>
+#   ALLOWED_REPO_OWNERS=mhmalam
+#   DEPLOY_BASE_DOMAIN=malam.me
 #   DEPLOY_PUBLIC_SCHEME=https
 #   DEPLOY_PUBLIC_PORT_SUFFIX=
-# VPS compose stack: nginx on real 80/443 with the cert dir mounted
+cp infra/nginx/vps-tls.conf infra/nginx/conf.d/99-tls.conf   # can't file-mount into an :ro dir mount
 docker compose -f infra/docker-compose.yml -f infra/docker-compose.vps.yml up -d
 npm run migrate
-```
-
-TLS works without touching the worker: `infra/nginx/vps-tls.conf` (mounted only
-by the VPS override) terminates HTTPS for the whole wildcard and hands requests
-back to the same nginx's HTTP vhosts. Local and VPS routing stay identical.
-
-Run api + worker + dashboard under systemd so they start on boot and restart
-on crash (this is what makes the platform 24/7). Unit files are in
-`infra/systemd/`:
-
-```sh
-npm run build -w apps/dashboard
 sudo cp infra/systemd/*.service /etc/systemd/system/
+sudo sed -i 's/User=ubuntu/User=ec2-user/; s|/home/ubuntu|/home/ec2-user|g' /etc/systemd/system/minivercel-*.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now minivercel-api minivercel-worker minivercel-dashboard
 ```
 
-(The units run `npm run dev:*` / `next start` — tsx-in-prod is acceptable v1;
-compiled `node dist` start scripts are a backlog item. Edit the `User=` and
-`WorkingDirectory=` lines if your username/path differ.)
+Two Linux lessons baked into the compose override: nginx runs with
+`network_mode: host` because a bridged container cannot reach services bound
+to the host's 127.0.0.1 (which is where the API and every app container
+deliberately live — Docker Desktop hides this, real Linux doesn't), with
+`host.docker.internal` pinned to 127.0.0.1 so the generated configs work
+unchanged. And the TLS include is copied, not mounted (see above).
 
 ## 4. Smoke test
 
-From the laptop, with `DEPLOY_API_URL=https://deploy.malam.me` (route the API
-through nginx too — backlog) or `http://<VPS IP>:4000` temporarily:
-
 ```sh
-npx deploy projects:add portfolio --repo https://github.com/mhmalam/<repo> --port 3000
-npx deploy push portfolio
-# → https://portfolio.deploy.malam.me
+curl https://api.deploy.malam.me/health          # {"ok":true}
+# register + deploy something via the dashboard at https://deploy.malam.me
+# then: curl https://<project>.malam.me
 ```
 
-Success = the plan's MVP: `deploy push` on the laptop → live HTTPS URL.
+Updating the platform after a code change: `git pull`, `npm install` if deps
+changed, `npm run build -w apps/dashboard` if the dashboard changed,
+`sudo systemctl restart minivercel-api minivercel-worker minivercel-dashboard`.
+(tsx watch reloads api/worker on pull by itself; the dashboard is a compiled
+build and needs the rebuild+restart.)

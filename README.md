@@ -1,9 +1,11 @@
 # mini-vercel
 
 My own little Vercel. I push code, it clones the repo, builds the Dockerfile,
-runs the container, and routes a subdomain to it. Eventually every project I
-own — including [malam.me](https://malam.me) itself — will be served by this
-instead of the real Vercel.
+runs the container, and routes a subdomain to it. And it's not a demo:
+**[malam.me](https://malam.me) — my actual portfolio — is served by this
+platform**, not by the real Vercel. Projects deploy to
+`https://<name>.malam.me` from a dashboard at a URL I won't link because
+it's password-protected and mine.
 
 I built this because my resume was wall-to-wall JavaScript and I wanted to
 actually understand the layer underneath: what happens between `git push` and
@@ -54,9 +56,11 @@ npx deploy stop my-app        # takes it offline; push brings it back
 npx deploy remove my-app      # deletes everything: containers, images, history
 ```
 
-Deployed apps land on `http://<name>.localhost:8080` locally. The only rule
-for a repo is that it has a `Dockerfile` at the root and serves HTTP on one
-port (the port you give at registration).
+Deployed apps land on `http://<name>.localhost:8080` locally, or
+`https://<name>.malam.me` in production. The only rule for a repo is that it
+has a `Dockerfile` at the root and serves HTTP on one port (the port you give
+at registration). Projects can also claim extra hostnames — that's how the
+apex `malam.me` itself is routed to the portfolio's container.
 
 There's also a GitHub webhook endpoint for real push-to-deploy — set
 `GITHUB_WEBHOOK_SECRET` and point a repo webhook at
@@ -86,10 +90,28 @@ infra/
   provision.md             my runbook for setting up the server
 ```
 
-## Status
+## Status: live in production
 
-Everything above works locally, end to end. What's left is going live:
-a VPS, the `*.deploy.malam.me` wildcard DNS + cert, and then custom domains
-so malam.me itself can move over. After that, cutting traffic from nginx to
-my Go proxy for good. Single user by design — this runs *my* code on *my*
-box, and registration is locked to my GitHub repos on purpose.
+As of July 2026 this runs 24/7 on an AWS EC2 box (1 GB of RAM and swap —
+it's fine) and serves my real traffic:
+
+- **malam.me is hosted here.** Deployed by the platform from the portfolio
+  repo, routed via its custom-domain support, migrated off Vercel by
+  changing one DNS record. Vercel's only remaining job is answering DNS.
+- One wildcard Let's Encrypt cert covers everything and renews itself
+  through a cron job (DNS-01 challenge against the Vercel DNS API — mildly
+  ironic, fully automatic).
+- The dashboard sits behind a session-cookie login page; the API behind a
+  bearer token; app containers run with memory/CPU limits, bound to
+  localhost, with nginx as the only thing facing the internet.
+- systemd keeps the api/worker/dashboard alive across crashes and reboots.
+
+The full rebuild-from-nothing runbook — including everything that went
+wrong the first time (Amazon Linux vs Ubuntu, lego v5's new CLI, Linux
+containers vs host loopback) — is in [infra/provision.md](./infra/provision.md).
+
+Still on the list: cutting public traffic over from nginx to my Go proxy
+(it runs in parallel today), per-project env vars so apps with API keys can
+deploy, and least-connections load balancing across container replicas.
+Single user by design — this runs *my* code on *my* box, and registration
+is locked to my GitHub repos on purpose.
