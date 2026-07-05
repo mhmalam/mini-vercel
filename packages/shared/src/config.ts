@@ -37,6 +37,12 @@ export const config = {
   /** HMAC secret for GitHub push webhooks. Empty (the default) disables the
    *  webhook endpoint entirely. */
   webhookSecret: env("GITHUB_WEBHOOK_SECRET", ""),
+  /** GitHub token with webhook write access. When set (with webhookUrl),
+   *  registering a project auto-attaches the push webhook to its repo. */
+  githubToken: env("GITHUB_TOKEN", ""),
+  /** Public URL GitHub should POST pushes to. Empty = no auto-attach
+   *  (local dev — GitHub can't reach a laptop anyway). */
+  webhookUrl: env("DEPLOY_WEBHOOK_URL", ""),
   /** Only repos under these GitHub owners may be registered — the platform
    *  runs whatever it builds, so never point it at code that isn't yours.
    *  Comma-separated. Local filesystem paths are additionally allowed while

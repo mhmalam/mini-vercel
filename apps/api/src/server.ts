@@ -14,6 +14,7 @@ import {
   updateProject,
 } from "@mini-vercel/db";
 import { buildQueue } from "./queue.js";
+import { attachGithubWebhook } from "./github.js";
 import { logStreamRoutes } from "./logstream.js";
 import { webhookRoutes } from "./webhooks.js";
 
@@ -78,6 +79,11 @@ app.post<{
     return reply.code(409).send({ error: `project '${name}' already exists` });
   }
   const project = await createProject({ name, repoUrl, branch, port });
+  // fire-and-forget: push-to-deploy wiring must never block registration
+  void attachGithubWebhook(project.repo_url, {
+    info: (m) => app.log.info(m),
+    warn: (m) => app.log.warn(m),
+  });
   return reply.code(201).send(project);
 });
 
