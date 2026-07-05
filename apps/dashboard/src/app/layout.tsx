@@ -16,10 +16,13 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <header className="site">
-          <Link href="/" className="brand">
-            mini-vercel
-          </Link>
-          <span className="tagline">control plane</span>
+          <div className="site-inner">
+            <Link href="/" className="brand">
+              mini-vercel
+            </Link>
+            <span className="tagline">control plane</span>
+            <span className="site-side">single-box PaaS · self-hosted</span>
+          </div>
         </header>
         <main className="container">{children}</main>
       </body>

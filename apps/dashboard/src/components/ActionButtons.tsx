@@ -55,7 +55,13 @@ export default function ActionButtons({
         <button
           key={kind}
           type="button"
-          className={kind === "stop" ? "btn btn-danger" : "btn"}
+          className={
+            kind === "stop"
+              ? "btn btn-danger"
+              : kind === "deploy"
+                ? "btn btn-primary"
+                : "btn"
+          }
           disabled={pending}
           onClick={() => run(kind)}
         >

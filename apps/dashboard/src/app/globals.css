@@ -1,17 +1,20 @@
-/* mini-vercel dashboard — a control plane, styled like one: night-cockpit
-   slate with amber instrument accents. Sans for prose, mono for data. */
+/* mini-vercel dashboard — mission control for a one-person PaaS.
+   Night-cockpit slate, amber instruments, glowing status lamps.
+   Sans for prose, mono for anything the machine produced. */
 
 :root {
-  --bg: #11151c;
-  --bg-raised: #181d27;
-  --bg-log: #0c0f15;
-  --border: #2a3140;
-  --border-strong: #475267;
+  --bg: #0e1218;
+  --bg-horizon: #182031;
+  --bg-panel: #141a24;
+  --bg-inset: #0b0e14;
+  --border: #262f3e;
+  --border-strong: #46536b;
   --text: #e9ebf1;
-  --dim: #aab1c0;
-  --faint: #8890a1;
+  --dim: #a9b1c2;
+  --faint: #8791a4;
   --accent: #ffb224;
   --accent-dim: #c78a1e;
+  --accent-glow: rgba(255, 178, 36, 0.14);
 
   --st-live: #56d97e;
   --st-building: #fbbf24;
@@ -35,20 +38,26 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
   color: var(--text);
   font-family: var(--sans);
   font-size: 15px;
   line-height: 1.6;
+  /* faint amber horizon behind the header — the room the instruments sit in */
+  background:
+    radial-gradient(1100px 420px at 50% -180px, var(--bg-horizon) 0%, transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
-/* Data reads as data: ids, paths, urls, logs, form inputs stay monospace. */
+/* Machine output reads as machine output. */
 table.data td,
 dl.meta,
 .logs,
-.new-project input {
+.stat .stat-value,
+.new-project input,
+.new-project select {
   font-family: var(--mono);
-  font-size: 13.5px;
 }
 
 :focus-visible {
@@ -57,85 +66,156 @@ dl.meta,
 }
 
 a {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.15s ease-out, color 0.15s ease-out;
 }
 a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: var(--accent);
+  text-decoration-color: var(--accent);
 }
 
 .container {
-  max-width: 920px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 0 24px 96px;
+  padding: 36px 28px 120px;
 }
 
 /* ---- header ---- */
 
 .site {
-  max-width: 920px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+.site-inner {
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 20px 24px 14px;
+  padding: 15px 28px;
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 40px;
+  gap: 14px;
 }
 .brand {
-  color: var(--text);
   font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  text-decoration: none;
 }
 .brand::before {
   content: "◆ ";
   color: var(--accent);
+  text-shadow: 0 0 12px var(--accent-glow);
 }
 .brand:hover {
-  text-decoration: none;
-  color: var(--accent);
+  color: var(--text);
+}
+.brand:hover::before {
+  text-shadow: 0 0 18px var(--accent);
 }
 .tagline {
   color: var(--faint);
+  font-size: 13.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.site-side {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 13px;
+  font-family: var(--mono);
 }
 
 /* ---- headings / text ---- */
 
 h1 {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0 0 4px;
 }
 h2 {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--dim);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 56px 0 16px;
+  letter-spacing: 0.14em;
+  margin: 52px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.muted {
-  color: var(--dim);
+/* amber tick before section titles — bezel markings */
+h2::before {
+  content: "";
+  width: 14px;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
-.faint {
-  color: var(--faint);
-}
-.error-text {
-  color: var(--st-failed);
-}
+.muted { color: var(--dim); }
+.faint { color: var(--faint); }
+.error-text { color: var(--st-failed); }
 
 .page-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
 }
 .page-head p {
   margin: 0;
   color: var(--dim);
   overflow-wrap: anywhere;
+}
+
+/* ---- instrument cluster (stat tiles) ---- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 0 0 40px;
+}
+.stat {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 18px 12px;
+}
+.stat .stat-value {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.stat .stat-label {
+  color: var(--faint);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-top: 2px;
+}
+.stat.stat-live .stat-value { color: var(--st-live); }
+.stat.stat-failed .stat-value { color: var(--st-failed); }
+.stat.stat-accent .stat-value { color: var(--accent); }
+
+/* ---- panels ---- */
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 20px;
+}
+.panel-pad {
+  padding: 20px;
 }
 
 /* ---- tables ---- */
@@ -147,44 +227,66 @@ table.data {
   width: 100%;
   border-collapse: collapse;
   white-space: nowrap;
+  font-size: 13.5px;
 }
 table.data th {
   text-align: left;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--faint);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  padding: 0 20px 10px 0;
+  letter-spacing: 0.12em;
+  font-size: 11.5px;
+  padding: 12px 20px 10px 0;
   border-bottom: 1px solid var(--border-strong);
 }
 table.data td {
   padding: 13px 20px 13px 0;
   border-bottom: 1px solid var(--border);
-  vertical-align: baseline;
+  vertical-align: middle;
+}
+table.data tbody tr:last-child td {
+  border-bottom: none;
 }
 table.data tbody tr {
   transition: background-color 0.15s ease-out;
 }
 table.data tbody tr:hover {
-  background: var(--bg-raised);
+  background: color-mix(in srgb, var(--bg-panel) 40%, var(--bg-horizon));
 }
 table.data th:last-child,
 table.data td:last-child {
   padding-right: 0;
+  text-align: right;
 }
 td.grow {
   width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
+}
+/* long repo urls / paths get one line + ellipsis, full value on hover */
+.trunc {
+  display: inline-block;
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
-/* ---- status badge ---- */
+/* ---- status lamps ---- */
 
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
 .badge::before {
-  content: "● ";
-  font-size: 9px;
-  vertical-align: 1px;
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
 }
 .st-live { color: var(--st-live); }
 .st-building { color: var(--st-building); }
@@ -209,41 +311,60 @@ td.grow {
   }
 }
 
-/* ---- buttons & forms ---- */
+/* ---- buttons ---- */
 
 .btn {
-  font: inherit;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--accent);
   background: transparent;
   border: 1px solid var(--accent-dim);
-  border-radius: 2px;
+  border-radius: 4px;
   padding: 6px 16px;
   cursor: pointer;
-  transition: background-color 0.15s ease-out, color 0.15s ease-out;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
 }
 .btn:hover:not(:disabled) {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg);
+  color: #14100a;
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 .btn:disabled {
   color: var(--faint);
   border-color: var(--border);
   cursor: default;
 }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #14100a;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #ffc554;
+  border-color: #ffc554;
+}
+.btn-primary:disabled {
+  background: var(--border);
+  border-color: var(--border);
+}
 .btn-danger {
   color: var(--st-failed);
-  border-color: var(--st-failed);
+  border-color: color-mix(in srgb, var(--st-failed) 60%, transparent);
 }
 .btn-danger:hover:not(:disabled) {
   background: var(--st-failed);
   border-color: var(--st-failed);
-  color: var(--bg);
+  color: #14100a;
+  box-shadow: 0 0 16px rgba(248, 113, 113, 0.2);
 }
 
 .actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -251,30 +372,31 @@ td.grow {
   font-size: 13px;
 }
 
+/* ---- register form ---- */
+
 .new-project {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: 14px 16px;
   align-items: flex-end;
 }
 .new-project label {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 11.5px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 .new-project input,
 .new-project select {
-  font-family: var(--mono);
   font-size: 13.5px;
   color: var(--text);
-  background: var(--bg-raised);
+  background: var(--bg-inset);
   border: 1px solid var(--border-strong);
-  border-radius: 2px;
-  padding: 8px 10px;
+  border-radius: 4px;
+  padding: 9px 11px;
 }
 .new-project select {
   max-width: 100%;
@@ -286,9 +408,10 @@ td.grow {
 .new-project select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .new-project .grow-field {
-  flex: 1 1 260px;
+  flex: 1 1 300px;
 }
 .new-project .form-error {
   flex-basis: 100%;
@@ -301,27 +424,56 @@ td.grow {
 dl.meta {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 2px 24px;
-  margin: 0 0 28px;
+  gap: 6px 28px;
+  margin: 0;
+  font-size: 13.5px;
 }
 dl.meta dt {
   color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11.5px;
+  align-self: baseline;
+  padding-top: 2px;
 }
 dl.meta dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-/* ---- build logs ---- */
+/* ---- build log terminal ---- */
 
-.logs {
-  background: var(--bg-log);
+.term {
+  background: var(--bg-inset);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.term-bar::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 16px 0 0 var(--border-strong), 32px 0 0 var(--border-strong);
+  margin-right: 32px;
+}
+.logs {
   padding: 16px 18px;
-  max-height: 65vh;
+  max-height: 62vh;
   overflow-y: auto;
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.6;
 }
 .logs .line {
@@ -332,7 +484,7 @@ dl.meta dd {
   color: var(--st-failed);
 }
 .logs .line.system {
-  color: var(--faint);
+  color: var(--accent-dim);
 }
 .logs .line.system::before {
   content: "==> ";

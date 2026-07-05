@@ -31,7 +31,10 @@ export default async function ProjectPage({
         <div>
           <h1>{project.name}</h1>
           <p>
-            {project.repo_url} <span className="faint">({project.branch})</span>
+            <span className="trunc" title={project.repo_url}>
+              {project.repo_url.replace(/^https:\/\/github\.com\//, "")}
+            </span>{" "}
+            <span className="faint">({project.branch})</span>
             {" · container port "}
             {project.port}
             {" · "}
@@ -48,7 +51,7 @@ export default async function ProjectPage({
           no deployments yet — hit deploy, or run `npx deploy push {project.name}`
         </p>
       ) : (
-        <div className="table-wrap">
+        <div className="panel table-wrap">
           <table className="data">
             <thead>
               <tr>
