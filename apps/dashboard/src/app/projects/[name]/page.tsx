@@ -57,9 +57,8 @@ export default async function ProjectPage({
               <tr>
                 <th>deployment</th>
                 <th>status</th>
-                <th>commit</th>
-                <th>created</th>
-                <th>host port</th>
+                <th className="col-optional">commit</th>
+                <th className="col-optional">created</th>
                 <th />
               </tr>
             </thead>
@@ -75,11 +74,12 @@ export default async function ProjectPage({
                       <span className="error-text"> — {d.error.slice(0, 60)}</span>
                     )}
                   </td>
-                  <td>{d.commit_sha ? d.commit_sha.slice(0, 8) : "--------"}</td>
-                  <td className="muted">
+                  <td className="col-optional">
+                    {d.commit_sha ? d.commit_sha.slice(0, 8) : "--------"}
+                  </td>
+                  <td className="muted col-optional">
                     {new Date(d.created_at).toLocaleString()}
                   </td>
-                  <td>{d.host_port ?? <span className="faint">—</span>}</td>
                   <td>
                     <Link href={`/deployments/${d.id}`}>logs →</Link>
                   </td>

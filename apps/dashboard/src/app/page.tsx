@@ -64,61 +64,42 @@ export default async function HomePage() {
       </div>
 
       {projects.length > 0 && (
-        <div className="panel table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>project</th>
-                <th>repo</th>
-                <th>latest</th>
-                <th>url</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {projects.map((p, i) => {
-                const d = latest[i];
-                const url = publicUrl(p.name);
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      <Link href={`/projects/${encodeURIComponent(p.name)}`}>
-                        {p.name}
-                      </Link>
-                    </td>
-                    <td className="grow muted">
-                      <span className="trunc" title={p.repo_url}>
-                        {p.repo_url.replace(/^https:\/\/github\.com\//, "")}
-                      </span>{" "}
-                      <span className="faint">({p.branch})</span>
-                    </td>
-                    <td>
-                      {d ? (
-                        <Link href={`/deployments/${d.id}`}>
-                          <StatusBadge status={d.status} />
-                        </Link>
-                      ) : (
-                        <span className="faint">never deployed</span>
-                      )}
-                    </td>
-                    <td>
-                      <a href={url} target="_blank" rel="noreferrer">
-                        {url.replace(/^https?:\/\//, "")}
-                      </a>
-                    </td>
-                    <td>
-                      <ActionButtons
-                        project={p.name}
-                        kinds={
-                          d?.status === "live" ? ["deploy", "stop"] : ["deploy"]
-                        }
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="cards">
+          {projects.map((p, i) => {
+            const d = latest[i];
+            const url = publicUrl(p.name);
+            return (
+              <div className="card" key={p.id}>
+                <div className="card-top">
+                  <Link
+                    className="card-name"
+                    href={`/projects/${encodeURIComponent(p.name)}`}
+                  >
+                    {p.name}
+                  </Link>
+                  {d ? (
+                    <Link href={`/deployments/${d.id}`}>
+                      <StatusBadge status={d.status} />
+                    </Link>
+                  ) : (
+                    <span className="faint">never deployed</span>
+                  )}
+                </div>
+                <span className="card-repo" title={p.repo_url}>
+                  {p.repo_url.replace(/^https:\/\/github\.com\//, "")} ({p.branch})
+                </span>
+                <a className="card-url" href={url} target="_blank" rel="noreferrer">
+                  {url.replace(/^https?:\/\//, "")}
+                </a>
+                <div className="card-actions">
+                  <ActionButtons
+                    project={p.name}
+                    kinds={d?.status === "live" ? ["deploy", "stop"] : ["deploy"]}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
