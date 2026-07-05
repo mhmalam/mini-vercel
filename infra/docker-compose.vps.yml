@@ -1,11 +1,18 @@
-# VPS override: expose nginx on the real ports and mount the wildcard cert.
-# Usage on the server:
+# VPS override. Usage on the server:
 #   docker compose -f infra/docker-compose.yml -f infra/docker-compose.vps.yml up -d
+#
+# nginx runs on the HOST network here (not bridged like local dev): the API
+# and every app container publish on 127.0.0.1 only, and on Linux a bridged
+# container cannot reach the host's loopback. With host networking nginx IS
+# on the host's loopback, and the extra_hosts pin makes the generated
+# `proxy_pass http://host.docker.internal:<port>` configs resolve to
+# 127.0.0.1 — so the exact same configs work locally and in prod.
 services:
   nginx:
-    ports: !override
-      - "80:80"
-      - "443:443"
+    network_mode: host
+    ports: !override []
+    extra_hosts: !override
+      - "host.docker.internal:127.0.0.1"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/certs:/etc/nginx/certs:ro
