@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText, GitBranch, Globe } from "lucide-react";
+import LocalTime from "@/components/LocalTime";
 import ActionButtons from "@/components/ActionButtons";
 import AutoRefresh from "@/components/AutoRefresh";
 import EditProject from "@/components/EditProject";
@@ -109,7 +110,7 @@ export default async function ProjectPage({
                     {d.commit_sha ? d.commit_sha.slice(0, 8) : "--------"}
                   </td>
                   <td className="muted col-optional">
-                    {new Date(d.created_at).toLocaleString()}
+                    <LocalTime iso={d.created_at} />
                   </td>
                   <td>
                     <Link className="icon-label" href={`/deployments/${d.id}`}>

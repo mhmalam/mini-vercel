@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ActionButtons from "@/components/ActionButtons";
 import AutoRefresh from "@/components/AutoRefresh";
+import LocalTime from "@/components/LocalTime";
 import LogViewer from "@/components/LogViewer";
 import StatusBadge from "@/components/StatusBadge";
 import { ApiError, getDeployment, listProjects, type Deployment } from "@/lib/api";
@@ -67,11 +68,15 @@ export default async function DeploymentPage({
         <dt>commit</dt>
         <dd>{deployment.commit_sha ?? <span className="faint">not resolved yet</span>}</dd>
         <dt>created</dt>
-        <dd>{new Date(deployment.created_at).toLocaleString()}</dd>
+        <dd>
+          <LocalTime iso={deployment.created_at} />
+        </dd>
         {deployment.finished_at && (
           <>
             <dt>finished</dt>
-            <dd>{new Date(deployment.finished_at).toLocaleString()}</dd>
+            <dd>
+              <LocalTime iso={deployment.finished_at} />
+            </dd>
           </>
         )}
         {deployment.host_port !== null && (

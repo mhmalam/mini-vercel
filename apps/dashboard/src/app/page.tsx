@@ -11,6 +11,7 @@ import {
 import ActionButtons from "@/components/ActionButtons";
 import EditProject from "@/components/EditProject";
 import GithubMark from "@/components/GithubMark";
+import LocalTime from "@/components/LocalTime";
 import AutoRefresh from "@/components/AutoRefresh";
 import NewProjectForm from "@/components/NewProjectForm";
 import StatusBadge from "@/components/StatusBadge";
@@ -58,12 +59,11 @@ export default async function HomePage() {
         </div>
         <div className="stat stat-accent">
           <div className="stat-value">
-            {lastActivity
-              ? new Date(lastActivity).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "—"}
+            {lastActivity ? (
+              <LocalTime iso={new Date(lastActivity).toISOString()} mode="time" />
+            ) : (
+              "—"
+            )}
           </div>
           <div className="stat-label icon-label">
             <Clock size={13} /> last deploy
