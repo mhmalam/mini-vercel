@@ -95,7 +95,8 @@ Created, Trained, Deployed. Free: Implemented, Architected, Orchestrated, Constr
 - **Use ONE wildcard cert via Let's Encrypt DNS-01 challenge for `*.deploy.malam.me`.**
   Per-deploy cert issuance is complexity with zero learning value; wildcard sidesteps it.
   DNS-01 requires API access to the DNS provider — confirm where malam.me's DNS is hosted
-  (Cloudflare, registrar, etc.) during VPS setup week.
+  (Cloudflare, registrar, etc.) as the FIRST task of the build day, since DNS propagation
+  and cert issuance take time and can run while coding.
 - acme.sh or lego (Go) for issuance + renewal cron. Proxy terminates TLS with the wildcard.
 - Wildcard DNS record `*.deploy.malam.me → VPS IP`.
 
@@ -116,7 +117,7 @@ Created, Trained, Deployed. Free: Implemented, Architected, Orchestrated, Constr
 | Containers | Docker via dockerode (or CLI shell-outs first) | core of the project |
 | Proxy | nginx → then custom Go proxy | learning arc, see §4 |
 | Dashboard | Next.js | owner's strength |
-| Host | single VPS — AWS EC2 (t3.small+) or Hetzner/DO if cheaper | one box is enough |
+| Host | single VPS — owner wants $0: prefer **Oracle Cloud Always Free** (4 ARM cores / 24 GB RAM, free forever; note ARM images), fallback AWS EC2 free plan (~6 months of credits, 1 GB RAM — add swap + a $1 billing alarm) | one box is enough; build/test fully on localhost first, VPS last |
 
 ## Data model (starting point)
 
@@ -163,26 +164,50 @@ mini-vercel/            # pick a real name early; naming it matters for motivati
     decisions.md        # ADR-style log of choices and why
 ```
 
-## Build order (8 weekends, MVP at the end of #3)
+## Build plan: ONE-DAY SPRINT to a live MVP, then a backlog
 
-1. **Skeleton + local loop.** Monorepo, Postgres + Redis via compose, `deploy push` CLI
-   that queues a job, worker clones a hardcoded repo, `docker build`s it, runs it on a
-   fixed port. No proxy, no TLS. Success: `curl localhost:PORT` serves the app.
-2. **Real lifecycle.** Deployment state machine, dynamic ports, logs persisted, statuses,
-   `deploy list`/`deploy logs`. Old container stopped after new one is healthy.
-3. **VPS + routing + TLS = MVP.** Provision VPS, wildcard DNS + wildcard cert, nginx
-   template regeneration per deploy. Success: `deploy push` → live HTTPS subdomain.
-   **Deploy the owner's portfolio or a real project on it this week.**
-4. **Dashboard v1.** Project/deployment list, log viewer (polling is fine first).
-5. **Go proxy replaces nginx.** Host-based routing + health checks + graceful reload.
-   This is the hardest and most valuable phase — budget overflow time.
-6. **Zero-downtime + rollback.** Health-gated cutover in the proxy, `deploy rollback`.
-7. **GitHub webhooks + WebSocket live logs.** Push-to-deploy for real; log streaming.
-8. **Hardening + polish.** Resource limits, image/workdir GC, basic auth on dashboard/API,
-   provision runbook, architecture doc, demo script.
+The owner wants the working core built in a single day (pair-programming with Claude Code).
+That is achievable for the MVP below. Everything in the backlog is REQUIRED before the
+resume bullets are honest — day one earns "it works," the backlog earns "platform engineering."
 
-Ship order matters: **a boring platform that's LIVE at week 3 beats a clever one that's
-local forever.** Cut scope from later weeks, never from week 3.
+### Day-one MVP — definition: `deploy push` on the laptop → live HTTPS URL
+
+Suggested order for the day (roughly sequential; VPS steps can run in parallel with coding):
+
+1. **VPS + DNS first** (lets DNS/cert issuance propagate while coding):
+   provision the VPS, install Docker, firewall (80/443/SSH only),
+   add `*.deploy.malam.me` A record, issue the wildcard cert via DNS-01 (acme.sh or lego).
+2. **Skeleton:** monorepo, docker-compose for Postgres + Redis, DB schema/migrations.
+3. **API:** create project, create deployment, get status/logs. Bearer-token auth from the start.
+4. **Worker:** BullMQ consumer — `git clone` → `docker build` → run container on a dynamic
+   `127.0.0.1` port with memory/CPU limits → record port/status/logs in Postgres.
+5. **Routing:** nginx with a config template regenerated on each deploy + `nginx -s reload`,
+   TLS terminated with the wildcard cert.
+6. **CLI:** `deploy push`, `deploy list`, `deploy logs`. Thin HTTP client over the API.
+7. **End-to-end test:** deploy one real app; fix what breaks. Ship state: live URL by midnight.
+
+Day-one scope cuts (deliberate): no dashboard, no webhooks, no rollback, no Go proxy,
+no zero-downtime cutover (brief downtime between old/new container is acceptable today).
+Non-negotiables even on day one: auth on the API, container resource limits, app ports
+bound to 127.0.0.1 only, and Docker socket never exposed.
+
+### Backlog (do in this order; the resume story depends on these)
+
+1. **Go reverse proxy replaces nginx** — host-based routing, health checks, graceful
+   route-table swaps. The single most valuable piece; do not skip.
+2. **Zero-downtime deploys + rollback** — health-gated cutover; `deploy rollback`.
+3. **Dashboard (Next.js)** — projects, deployment history, log viewer; deploy it ON the platform.
+4. **GitHub webhooks + WebSocket live log streaming** — true push-to-deploy.
+5. **Hardening** — image/workdir GC (urgent: single VPS fills its disk fast), build
+   timeouts, provision runbook, `docs/architecture.md`.
+
+### Architecture clarification (owner asked; keep this mental model)
+
+Nothing ever talks to Docker directly — not the CLI, not the dashboard, not GitHub.
+The chain is: CLI/dashboard/webhook → **API** (auth, writes to Postgres, enqueues job)
+→ **worker** (dequeues, drives Docker over its local socket) → **Docker** (builds and
+runs containers, all on the VPS). Docker is a local tool the worker commands; it is
+never network-exposed. The platform code IS the middleman — that's the project.
 
 ## Security constraints (non-negotiable)
 
@@ -204,8 +229,9 @@ local forever.** Cut scope from later weeks, never from week 3.
 - **Dashboard gold-plating:** the platform is the product; UI is a viewport.
 - **Kubernetes envy:** one VPS, raw Docker. k8s would delete the learning value AND the
   shipping speed.
-- **Abandonment risk:** the whole point of the week-3 MVP rule is that once real projects
-  run on it, maintaining it becomes self-sustaining instead of hypothetical.
+- **Abandonment risk:** the one-day MVP ends with something live; the danger is stopping
+  there. The backlog (especially the Go proxy) is what makes this a systems project —
+  schedule it immediately while momentum is high.
 
 ## Definition of done (v1)
 
