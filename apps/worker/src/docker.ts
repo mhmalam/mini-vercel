@@ -73,17 +73,24 @@ export async function dockerStop(containerId: string): Promise<void> {
   await exec("docker", ["stop", containerId]);
 }
 
-/** List running container ids for a project. */
+/** List container ids for a project (running only, or all with opts.all). */
 export async function listProjectContainers(
   projectName: string,
+  opts: { all?: boolean } = {},
 ): Promise<string[]> {
   const out = await exec("docker", [
     "ps",
+    ...(opts.all ? ["-a"] : []),
     "-q",
     "--filter",
     `label=minivercel.project=${projectName}`,
   ]);
   return out.split("\n").map((l) => l.trim()).filter(Boolean);
+}
+
+/** Force-remove a container (stops it first if running). */
+export async function dockerRemoveContainer(containerId: string): Promise<void> {
+  await exec("docker", ["rm", "-f", containerId]);
 }
 
 /**

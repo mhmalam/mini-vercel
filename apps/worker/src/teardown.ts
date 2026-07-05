@@ -1,9 +1,15 @@
 import {
+  deleteProject,
   getDeployment,
   getProjectById,
   updateDeployment,
 } from "@mini-vercel/db";
-import { dockerStop, listProjectContainers } from "./docker.js";
+import {
+  dockerRemoveContainer,
+  dockerStop,
+  listProjectContainers,
+  pruneProjectImages,
+} from "./docker.js";
 import { LogSink } from "./logsink.js";
 import { removeRoute } from "./routing.js";
 
@@ -38,4 +44,27 @@ export async function stopDeployment(deploymentId: string): Promise<void> {
   } finally {
     await log.flush();
   }
+}
+
+/**
+ * Delete a project outright: route, every container (running or not), all
+ * its images, then the DB rows (deployments/logs/routes cascade). There is
+ * no deployment to log to once this finishes, so progress goes to stdout.
+ */
+export async function removeProject(projectId: string): Promise<void> {
+  const project = await getProjectById(projectId);
+  if (!project) return; // already gone — removal is idempotent
+
+  console.log(`[worker] removing project '${project.name}'`);
+  await removeRoute(project.name, (msg) =>
+    console.warn(`[worker] warning: ${msg}`),
+  );
+  for (const id of await listProjectContainers(project.name, { all: true })) {
+    await dockerRemoveContainer(id).catch((err) =>
+      console.warn(`[worker] warning: failed to remove ${id}: ${err.message}`),
+    );
+  }
+  await pruneProjectImages(project.name, 0).catch(() => []);
+  await deleteProject(projectId);
+  console.log(`[worker] project '${project.name}' removed`);
 }

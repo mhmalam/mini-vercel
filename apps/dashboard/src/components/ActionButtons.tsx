@@ -2,31 +2,53 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Rocket, Square, Undo2 } from "lucide-react";
-import { deploy, rollback, stopProject, type ActionResult } from "@/lib/actions";
+import { Rocket, Square, Trash2, Undo2 } from "lucide-react";
+import {
+  deploy,
+  removeProject,
+  rollback,
+  stopProject,
+  type ActionResult,
+} from "@/lib/actions";
 
-type Kind = "deploy" | "rollback" | "stop";
+type Kind = "deploy" | "rollback" | "stop" | "remove";
 
 const LABEL: Record<Kind, [idle: string, busy: string]> = {
   deploy: ["deploy", "queuing…"],
   rollback: ["rollback", "queuing…"],
   stop: ["stop", "stopping…"],
+  remove: ["delete", "deleting…"],
 };
 
 const ICON: Record<Kind, React.ReactNode> = {
   deploy: <Rocket size={13} />,
   rollback: <Undo2 size={13} />,
   stop: <Square size={11} fill="currentColor" />,
+  remove: <Trash2 size={13} />,
 };
 
 const RUN: Record<Kind, (project: string) => Promise<ActionResult>> = {
   deploy,
   rollback,
   stop: stopProject,
+  remove: removeProject,
 };
 
-/** Deploy / rollback / stop buttons with inline errors instead of the Next
- *  error page. deploy and rollback navigate to the new deployment's logs. */
+/** Destructive kinds confirm through a modal; absent = run immediately. */
+const CONFIRM: Partial<Record<Kind, { body: string; cta: string }>> = {
+  stop: {
+    body: "Its containers will be stopped and the URL will return 404 until the next deploy. Nothing is deleted — deploying brings it right back.",
+    cta: "take offline",
+  },
+  remove: {
+    body: "This stops its containers and permanently deletes the project, its deployment history, build logs, and images. The subdomain is freed. This cannot be undone.",
+    cta: "delete project",
+  },
+};
+
+/** Deploy / rollback / stop / delete buttons with inline errors instead of
+ *  the Next error page. deploy and rollback navigate to the new deployment's
+ *  logs; delete navigates home. */
 export default function ActionButtons({
   project,
   kinds = ["deploy"],
@@ -37,7 +59,7 @@ export default function ActionButtons({
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<Kind | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [confirmingStop, setConfirmingStop] = useState(false);
+  const [confirming, setConfirming] = useState<Kind | null>(null);
   const router = useRouter();
 
   const execute = (kind: Kind) => {
@@ -52,38 +74,38 @@ export default function ActionButtons({
   };
 
   const run = (kind: Kind) => {
-    if (kind === "stop") setConfirmingStop(true);
+    if (CONFIRM[kind]) setConfirming(kind);
     else execute(kind);
   };
 
+  const dialog = confirming ? CONFIRM[confirming] : undefined;
+
   return (
     <div className="actions">
-      {confirmingStop && (
+      {confirming && dialog && (
         <div
           className="modal-overlay"
-          onClick={() => setConfirmingStop(false)}
+          onClick={() => setConfirming(null)}
           role="presentation"
         >
           <div
             className="modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="stop-title"
+            aria-labelledby="confirm-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="stop-title">
-              Take <span className="mono">{project}</span> offline?
+            <h3 id="confirm-title">
+              {confirming === "stop" ? "Take " : "Delete "}
+              <span className="mono">{project}</span>{" "}
+              {confirming === "stop" ? "offline?" : "forever?"}
             </h3>
-            <p>
-              Its containers will be stopped and the URL will return 404 until
-              the next deploy. Nothing is deleted — deploying brings it right
-              back.
-            </p>
+            <p>{dialog.body}</p>
             <div className="modal-actions">
               <button
                 type="button"
                 className="btn"
-                onClick={() => setConfirmingStop(false)}
+                onClick={() => setConfirming(null)}
                 autoFocus
               >
                 cancel
@@ -92,12 +114,14 @@ export default function ActionButtons({
                 type="button"
                 className="btn btn-danger"
                 onClick={() => {
-                  setConfirmingStop(false);
-                  execute("stop");
+                  const kind = confirming;
+                  setConfirming(null);
+                  execute(kind);
                 }}
               >
                 <span className="icon-label">
-                  <Square size={11} fill="currentColor" /> take offline
+                  {ICON[confirming]}
+                  {dialog.cta}
                 </span>
               </button>
             </div>
@@ -109,7 +133,7 @@ export default function ActionButtons({
           key={kind}
           type="button"
           className={
-            kind === "stop"
+            kind === "stop" || kind === "remove"
               ? "btn btn-danger"
               : kind === "deploy"
                 ? "btn btn-primary"

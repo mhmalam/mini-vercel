@@ -47,7 +47,11 @@ export default async function ProjectPage({
         </div>
         <ActionButtons
           project={project.name}
-          kinds={hasLive ? ["deploy", "rollback", "stop"] : ["deploy", "rollback"]}
+          kinds={
+            hasLive
+              ? ["deploy", "rollback", "stop", "remove"]
+              : ["deploy", "rollback", "remove"]
+          }
         />
       </div>
 

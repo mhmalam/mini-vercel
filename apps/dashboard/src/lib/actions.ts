@@ -6,6 +6,8 @@ import {
   createDeployment,
   createProject,
   getDeployment,
+  listProjects,
+  removeProject as removeProjectApi,
   rollbackProject,
   stopProject as stopProjectApi,
 } from "./api";
@@ -57,6 +59,22 @@ export async function stopProject(project: string): Promise<ActionResult> {
   revalidatePath("/");
   revalidatePath(`/projects/${encodeURIComponent(project)}`);
   return {};
+}
+
+/** Delete a project. Waits (bounded) until it's gone, then goes home. */
+export async function removeProject(project: string): Promise<ActionResult> {
+  try {
+    await removeProjectApi(project);
+    for (let i = 0; i < 20; i++) {
+      const projects = await listProjects();
+      if (!projects.some((p) => p.name === project)) break;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  } catch (err) {
+    return { error: message(err) };
+  }
+  revalidatePath("/");
+  redirect("/");
 }
 
 export interface AddProjectState {

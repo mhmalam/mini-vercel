@@ -132,6 +132,24 @@ app.post<{ Params: { name: string } }>(
   },
 );
 
+// Delete a project entirely: the worker removes its route, containers,
+// and images, then the DB rows cascade away. Idempotent on the worker side.
+app.delete<{ Params: { name: string } }>(
+  "/api/projects/:name",
+  async (req, reply) => {
+    const project = await getProjectByName(req.params.name);
+    if (!project) {
+      return reply.code(404).send({ error: "project not found" });
+    }
+    await buildQueue.add(
+      "remove",
+      { projectId: project.id, action: "remove" },
+      { jobId: `remove-${project.id}` },
+    );
+    return reply.code(202).send({ ok: true });
+  },
+);
+
 // Take a project offline: the worker drops its route and stops its
 // containers. `deploy push` (or the dashboard's Deploy) brings it back.
 app.post<{ Params: { name: string } }>(

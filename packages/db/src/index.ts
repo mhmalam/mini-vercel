@@ -39,6 +39,11 @@ export async function getProjectById(id: string): Promise<Project | null> {
   return rows[0] ?? null;
 }
 
+/** Cascades: deployments, build_logs, and routes rows go with the project. */
+export async function deleteProject(id: string): Promise<void> {
+  await pool.query("delete from projects where id = $1", [id]);
+}
+
 export async function listProjects(): Promise<Project[]> {
   const { rows } = await pool.query<Project>(
     "select * from projects order by created_at",

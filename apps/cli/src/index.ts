@@ -260,6 +260,22 @@ program
   });
 
 program
+  .command("remove <project>")
+  .description("delete a project: containers, images, route, and history")
+  .action(async (name: string) => {
+    await api("DELETE", `/api/projects/${name}`);
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      const projects = await api<{ name: string }[]>("GET", "/api/projects");
+      if (!projects.some((p) => p.name === name)) {
+        return console.log(`'${name}' removed`);
+      }
+      await sleep(1000);
+    }
+    fail("timed out waiting for removal — check `deploy projects`");
+  });
+
+program
   .command("list [project]")
   .description("list recent deployments (optionally for one project)")
   .action(async (projectArg?: string) => {

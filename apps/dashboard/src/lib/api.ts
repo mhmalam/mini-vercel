@@ -105,6 +105,9 @@ export const stopProject = (project: string) =>
     `/api/projects/${encodeURIComponent(project)}/stop`,
   );
 
+export const removeProject = (project: string) =>
+  api<{ ok: boolean }>("DELETE", `/api/projects/${encodeURIComponent(project)}`);
+
 export const getDeployment = (id: string) =>
   api<Deployment>("GET", `/api/deployments/${encodeURIComponent(id)}`);
 

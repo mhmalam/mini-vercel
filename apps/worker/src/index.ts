@@ -5,17 +5,19 @@ import {
   type BuildJobData,
 } from "@mini-vercel/shared";
 import { runDeployment } from "./pipeline.js";
-import { stopDeployment } from "./teardown.js";
+import { removeProject, stopDeployment } from "./teardown.js";
 
 // One build at a time: docker build is heavy and this runs on a single box.
 const worker = new Worker<BuildJobData, void, string>(
   BUILD_QUEUE,
   async (job) => {
     const action = job.data.action ?? "deploy";
-    console.log(`[worker] starting ${action} ${job.data.deploymentId}`);
-    if (action === "stop") await stopDeployment(job.data.deploymentId);
-    else await runDeployment(job.data.deploymentId);
-    console.log(`[worker] finished ${action} ${job.data.deploymentId}`);
+    const target = job.data.deploymentId ?? job.data.projectId;
+    console.log(`[worker] starting ${action} ${target}`);
+    if (action === "remove") await removeProject(job.data.projectId!);
+    else if (action === "stop") await stopDeployment(job.data.deploymentId!);
+    else await runDeployment(job.data.deploymentId!);
+    console.log(`[worker] finished ${action} ${target}`);
   },
   { connection: redisConnectionOptions(), concurrency: 1 },
 );

@@ -5,10 +5,12 @@ export * from "./redis.js";
 export const BUILD_QUEUE = "builds";
 
 /** Payload of a build job. Everything else is looked up from Postgres.
- *  action "stop" tears the deployment down instead of building. */
+ *  "deploy" and "stop" act on a deployment; "remove" deletes a whole
+ *  project (containers, route, images, DB rows). */
 export interface BuildJobData {
-  deploymentId: string;
-  action?: "deploy" | "stop";
+  deploymentId?: string;
+  projectId?: string;
+  action?: "deploy" | "stop" | "remove";
 }
 
 export const DEPLOYMENT_STATUSES = [
