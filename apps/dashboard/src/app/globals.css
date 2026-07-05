@@ -3,7 +3,44 @@
    only where the machine speaks. Nothing scrolls sideways: projects are
    cards that wrap, tables shed columns on narrow screens. */
 
+/* Default: airy light — white base, soft blue/pink gradient washes,
+   confident blue accent, rounded cards floating on soft shadows. */
 :root {
+  --bg: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-inset: #f4f5f8;
+  --border: #e7e8ee;
+  --border-hover: #d3d5de;
+  --text: #14161c;
+  --dim: #4b5260;
+  --faint: #697080;
+  --accent: #2563eb;
+  --accent-soft: #3b82f6;
+  --accent-contrast: #ffffff;
+  --link: #2563eb;
+
+  --st-live: #16a34a;
+  --st-building: #d97706;
+  --st-deploying: #d97706;
+  --st-queued: #64748b;
+  --st-failed: #dc2626;
+  --st-stopped: #8a90a0;
+  --st-rolled_back: #9333ea;
+
+  --header-bg: rgba(255, 255, 255, 0.75);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05), 0 2px 8px rgba(16, 24, 40, 0.06);
+  --shadow-card-hover: 0 12px 32px rgba(16, 24, 40, 0.12);
+  --bg-wash:
+    radial-gradient(900px 480px at 12% -12%, rgba(99, 102, 241, 0.12), transparent 62%),
+    radial-gradient(820px 440px at 88% -14%, rgba(236, 72, 153, 0.09), transparent 62%),
+    radial-gradient(700px 420px at 50% 118%, rgba(37, 99, 235, 0.07), transparent 60%);
+
+  --sans: var(--font-sans), system-ui, "Segoe UI", sans-serif;
+  --mono: var(--font-mono), ui-monospace, Consolas, Menlo, monospace;
+}
+
+/* Dark mode keeps the amber identity. Toggled via data-theme. */
+:root[data-theme="dark"] {
   --bg: #0a0a0a;
   --bg-panel: #111113;
   --bg-inset: #0d0d0f;
@@ -14,6 +51,7 @@
   --faint: #94949e;
   --accent: #ffb224;
   --accent-soft: #fdc65b;
+  --accent-contrast: #171205;
   --link: var(--accent-soft);
 
   --st-live: #4ade80;
@@ -25,35 +63,9 @@
   --st-rolled_back: #c084fc;
 
   --header-bg: rgba(10, 10, 10, 0.8);
-
-  --sans: var(--font-sans), system-ui, "Segoe UI", sans-serif;
-  --mono: var(--font-mono), ui-monospace, Consolas, Menlo, monospace;
-}
-
-/* Light mode: same structure, inverted surfaces; amber shifts darker so it
-   still reads on white. Toggled via data-theme by ThemeToggle. */
-:root[data-theme="light"] {
-  --bg: #fafafa;
-  --bg-panel: #ffffff;
-  --bg-inset: #f4f4f5;
-  --border: #e4e4e7;
-  --border-hover: #d4d4d8;
-  --text: #18181b;
-  --dim: #47474f;
-  --faint: #66666e;
-  --accent: #f59e0b;
-  --accent-soft: #d97706;
-  --link: #b45309;
-
-  --st-live: #16a34a;
-  --st-building: #d97706;
-  --st-deploying: #d97706;
-  --st-queued: #64748b;
-  --st-failed: #dc2626;
-  --st-stopped: #71717a;
-  --st-rolled_back: #9333ea;
-
-  --header-bg: rgba(250, 250, 250, 0.85);
+  --shadow-card: none;
+  --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.25);
+  --bg-wash: none;
 }
 
 * {
@@ -61,16 +73,17 @@
 }
 
 html {
-  color-scheme: dark;
-}
-html[data-theme="light"] {
   color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--bg-wash), var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--sans);
   font-size: 14.5px;
@@ -182,8 +195,8 @@ a:hover {
 /* ---- headings / text ---- */
 
 h1 {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 650;
   letter-spacing: -0.02em;
   margin: 0 0 4px;
 }
@@ -222,8 +235,9 @@ h2 {
 .stat {
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 14px 16px 12px;
+  box-shadow: var(--shadow-card);
 }
 .stat .stat-value {
   font-size: 24px;
@@ -253,15 +267,16 @@ h2 {
   gap: 9px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 20px;
+  box-shadow: var(--shadow-card);
   transition: border-color 0.15s ease-out, transform 0.15s ease-out,
     box-shadow 0.15s ease-out;
 }
 .card:hover {
   border-color: var(--border-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-card-hover);
 }
 @media (prefers-reduced-motion: reduce) {
   .card:hover { transform: none; }
@@ -461,8 +476,9 @@ h2 {
 .panel {
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 4px 18px;
+  box-shadow: var(--shadow-card);
 }
 .panel-pad {
   padding: 18px;
@@ -581,12 +597,12 @@ table.data td:last-child {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #171205;
+  color: var(--accent-contrast);
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-soft);
   border-color: var(--accent-soft);
-  color: #171205;
+  color: var(--accent-contrast);
 }
 .btn-primary:disabled {
   background: var(--border);

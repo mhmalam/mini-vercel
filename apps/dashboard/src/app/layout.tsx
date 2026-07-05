@@ -25,7 +25,7 @@ export default function RootLayout({
         {/* set the theme before first paint — no flash of the wrong mode */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}`,
+            __html: `try{if(localStorage.getItem("theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`,
           }}
         />
       </head>
