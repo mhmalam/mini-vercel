@@ -49,3 +49,31 @@ the routing table input the proxy will read later.
 Readiness = the container answers *any* HTTP response on its port within
 60s (a 500 still proves the server is up). Real per-project health-check
 paths and health-gated proxy cutover come with the proxy phase (plan §3/§4).
+
+## 008 — TLS terminates in one static nginx block, not per-project configs
+
+The worker generates identical HTTP-only server blocks locally and on the
+VPS. On the VPS a single static file (`infra/nginx/vps-tls.conf`, mounted
+only by the compose override) terminates HTTPS for the whole `*.deploy`
+wildcard and proxies back into nginx's own port 80, where per-project blocks
+route by Host. Local and prod routing stay byte-identical; TLS is one file.
+Cost: plain-HTTP requests are served, not redirected (exact `server_name`
+matches beat any wildcard redirect block) — backlog polish.
+
+## 009 — rollback re-runs the pipeline with a pre-filled image
+
+`deploy rollback` creates a *new* deployment whose `image_tag`/`commit_sha`
+are copied from the newest previously-live deployment of a *different
+commit* (same-commit deploys would make repeated rollbacks ping-pong).
+The worker skips clone+build when `image_tag` is pre-set; everything after
+(run → readiness → route switch → swap) is the normal path, so rollbacks get
+the same zero-downtime guarantees as pushes. Displaced deployments are
+marked `rolled_back`, not `stopped`, so history shows what happened.
+
+## 010 — the Go proxy coexists with nginx during the transition
+
+`apps/proxy` (pgx, stdlib `httputil.ReverseProxy`) polls the `routes` table
+every 2s into an atomically-swapped map, health-checks backends every 5s,
+and serves on :8081 next to nginx on :8080/:80. Both read the same source of
+truth, so cutover is just a port swap when trust is earned; nginx remains
+the instant fallback. lib/pq was rejected (maintenance mode).

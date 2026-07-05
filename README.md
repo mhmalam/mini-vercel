@@ -12,16 +12,23 @@ Decision log: [docs/decisions.md](./docs/decisions.md)
 
 ```
 apps/
-  api/        Fastify control-plane API (projects, deployments, logs)
-  worker/     BullMQ worker: clone → docker build → run → readiness → swap
-  cli/        `deploy` command
+  api/        Fastify control-plane API (projects, deployments, logs,
+              GitHub webhook, WebSocket log streaming)
+  worker/     BullMQ worker: clone → docker build → run → readiness →
+              route switch → swap; rollbacks skip clone/build
+  proxy/      hand-written Go reverse proxy (host routing, health checks) —
+              runs on :8081 beside nginx until it takes over
+  dashboard/  Next.js UI on :3001 — projects, deploy button, live logs
+  cli/        `deploy` command (push, rollback, list, logs)
 packages/
   db/         Postgres pool, SQL migrations, typed queries
   shared/     config, queue names, shared types
 infra/
-  docker-compose.yml   Postgres + Redis + nginx for local dev
-  nginx/conf.d/        server blocks (10-*.conf generated per deploy)
-  provision.md         VPS setup runbook (DNS, wildcard cert, hardening)
+  docker-compose.yml       Postgres + Redis + nginx for local dev
+  docker-compose.vps.yml   VPS override: nginx on 80/443 + wildcard TLS
+  nginx/conf.d/            server blocks (10-*.conf generated per deploy)
+  systemd/                 unit files that keep everything running 24/7
+  provision.md             VPS setup runbook (DNS, wildcard cert, hardening)
 ```
 
 ## Prerequisites
@@ -55,7 +62,17 @@ npx deploy push my-app
 # inspect
 npx deploy list my-app
 npx deploy logs <deployment-id>
+
+# undo: redeploy the previous version's image (no rebuild)
+npx deploy rollback my-app
 ```
+
+Or use the dashboard: `npm run dev:dashboard` → http://dashboard.localhost:8080
+(register projects, hit Deploy, watch live build logs).
+
+True push-to-deploy: set `GITHUB_WEBHOOK_SECRET` in `.env`, then add a webhook
+on the GitHub repo (payload URL `https://api.deploy.malam.me/api/webhooks/github`,
+content type JSON, the same secret) — every push to the configured branch deploys.
 
 A successful push ends with the app's routed URL. Locally that is
 `http://<project>.localhost:8080` — nginx (in Docker) routes by Host header

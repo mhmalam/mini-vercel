@@ -1,0 +1,17 @@
+[Unit]
+Description=mini-vercel build/deploy worker
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/mini-vercel
+ExecStart=/usr/bin/npm run dev:worker
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

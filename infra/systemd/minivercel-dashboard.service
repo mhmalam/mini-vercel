@@ -1,0 +1,17 @@
+[Unit]
+Description=mini-vercel dashboard (Next.js)
+After=network-online.target minivercel-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/mini-vercel/apps/dashboard
+# `npm run build -w apps/dashboard` once after each git pull, then this serves it
+ExecStart=/usr/bin/npx next start -p 3001
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

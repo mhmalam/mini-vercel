@@ -1,0 +1,12 @@
+# VPS override: expose nginx on the real ports and mount the wildcard cert.
+# Usage on the server:
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.vps.yml up -d
+services:
+  nginx:
+    ports: !override
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/vps-tls.conf:/etc/nginx/conf.d/99-tls.conf:ro
