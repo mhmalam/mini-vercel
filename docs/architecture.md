@@ -1,52 +1,80 @@
 # Architecture
 
-> Running design doc. Updated as the system grows; the target state is in
-> MINI-VERCEL-PLAN.md. This describes what exists **now**.
+How the system fits together, as it runs in production today. The decision
+log (decisions.md) covers why things ended up this way.
 
-## Current state (weekend 1: skeleton + local loop)
+## The path of a deploy
 
 ```
-deploy push (CLI)
-   │  POST /api/projects/:name/deployments  (bearer token)
-   ▼
-api (Fastify) ── insert deployments row (status=queued) ── enqueue BullMQ job
-   │                                                            │
-   ▼                                                            ▼
-Postgres  ◄──────────── status/log updates ──────────── worker (BullMQ, concurrency 1)
-                                                             │
-                                                             ├─ git clone --depth 1
-                                                             ├─ docker build -t <project>:<id8>
-                                                             ├─ docker run -d  (512m / 1 cpu,
-                                                             │    127.0.0.1:ephemeral → app port,
-                                                             │    labeled minivercel.project/.deployment)
-                                                             ├─ poll HTTP until the app answers
-                                                             ├─ stop previous project containers
-                                                             └─ prune images (keep newest 3)
+git push ──► GitHub webhook ─┐
+dashboard deploy button ─────┼──► api (Fastify, bearer auth / HMAC)
+deploy CLI ──────────────────┘        │
+                                      │  insert deployments row, enqueue job
+                                      ▼
+Postgres ◄── status + logs ─── worker (BullMQ, one job at a time)
+                                      │
+                                      ├─ git clone --depth 1
+                                      ├─ docker build -t <project>:<id8>
+                                      ├─ docker run -d (512m / 1 cpu,
+                                      │    127.0.0.1:ephemeral → app port)
+                                      ├─ poll HTTP until the app answers
+                                      ├─ rewrite nginx route, reload
+                                      ├─ stop the previous container
+                                      └─ prune old images (keep 3)
 ```
 
-- **State machine:** `queued → building → deploying → live | failed`; previous
-  live deployments become `stopped` when a new one goes live.
-- **Logs:** every stdout/stderr line from clone/build plus `system` progress
-  markers land in append-only `build_logs` with a per-deployment sequence
-  number. The CLI tails them by polling `GET /deployments/:id/logs?after=<seq>`.
-- **Ports:** Docker assigns an ephemeral host port (`-p 127.0.0.1::<appPort>`);
-  the worker reads the mapping with `docker port` and stores it on the
-  deployment row. Binding to 127.0.0.1 keeps app containers unreachable from
-  outside the box — only the (future) proxy will be public.
-- **Cutover:** the old container is stopped only after the new one answers
-  HTTP — the primitive that becomes zero-downtime deploys once the proxy
-  owns routing.
-- **Cleanup:** build workdirs are deleted after every run; images beyond the
-  newest 3 per project are pruned after each successful deploy.
+The ordering in the last three steps is the zero-downtime story: the route
+only moves after the new container answers HTTP, and the old container only
+stops after the route has moved.
 
-## Security posture (current)
+Nothing talks to Docker except the worker, and nothing reaches the API
+except through nginx. The CLI and dashboard are both thin HTTP clients.
 
-- All API routes except `/health` require `Authorization: Bearer <token>`.
-- API listens on 127.0.0.1 only (it drives the Docker socket = root).
-- App containers: memory/CPU limits, no privileged flags, ports bound to
-  loopback.
+## Routing
 
-## Not built yet (by design, see plan)
+nginx terminates TLS for `malam.me`, `*.malam.me`, and `*.deploy.malam.me`
+with one wildcard cert (lego renews it via a daily cron). Each project gets
+a generated server block (`infra/nginx/conf.d/10-<name>.conf`) mapping
+`<name>.malam.me` — plus any custom domains, which is how the apex serves
+the portfolio — to its container's port. Unknown or stopped subdomains fall
+through to a branded offline page.
 
-Reverse proxy + subdomains, TLS, GitHub webhooks, WebSocket log streaming,
-dashboard, rollback, health-gated zero-downtime cutover in the proxy.
+On the server nginx runs with host networking: app containers publish on
+127.0.0.1 only, and on Linux a bridged container can't reach the host's
+loopback. `host.docker.internal` is pinned to 127.0.0.1 so the same
+generated configs work on a dev machine with Docker Desktop.
+
+There's also a reverse proxy written in Go (`apps/proxy`) that does the same
+routing straight from the `routes` table, with its own health checks. It
+runs beside nginx on :8081 until it has earned the public port.
+
+## Jobs beyond "deploy"
+
+The queue carries five actions, all keyed off Postgres state:
+
+- **deploy** — the pipeline above. A row that already has an `image_tag`
+  skips clone+build (that's how rollback works: re-run an old image).
+- **stop** — drop the route, stop containers. The URL 404s until next push.
+- **remove** — delete a project completely: route, containers, images, rows.
+- **rename** — retire the old subdomain and redeploy the current image under
+  the new name (labels and routes carry the project name).
+- **reroute** — rewrite the nginx block in place when custom domains change.
+
+## The platform's own services
+
+api, worker, and dashboard are Node processes under systemd on the host
+(not containerized). Postgres, Redis, and nginx run in Docker via compose.
+The dashboard is a Next.js app behind a session-cookie login; the session
+token is derived from the password, so rotating the password logs out
+everything.
+
+## Security
+
+- The API is bearer-token everywhere except `/health` and the GitHub
+  webhook, which authenticates with an HMAC signature instead.
+- Registration only accepts repos from allowed GitHub owners — the platform
+  runs what it builds, so it refuses to build strangers' code.
+- App containers get memory/CPU limits, no privileged flags, loopback-only
+  ports. nginx is the single thing facing the internet.
+- Secrets (API token, dashboard password, GitHub token, DNS API token) live
+  in the server's `.env` and `~/.mv-lego.env`, never in the repo.

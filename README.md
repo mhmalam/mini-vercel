@@ -13,8 +13,7 @@ a URL that works. Turns out the answer is "a queue, a build pipeline, a
 reverse proxy, and a hundred small decisions" — the interesting ones are
 written down in [docs/decisions.md](./docs/decisions.md).
 
-The original plan I'm building against is [MINI-VERCEL-PLAN.md](./MINI-VERCEL-PLAN.md),
-and there's a design doc at [docs/architecture.md](./docs/architecture.md).
+There's a design doc at [docs/architecture.md](./docs/architecture.md).
 
 ## How it works, in one breath
 

@@ -1,5 +1,5 @@
-// Command proxy is mini-vercel's hand-written reverse proxy — phase 2 of the
-// proxy story (MINI-VERCEL-PLAN.md §4). It will eventually replace nginx:
+// Command proxy is mini-vercel's hand-written reverse proxy. It will
+// eventually replace nginx:
 // it routes by Host header (`<project>.<domain>` → the live container's host
 // port), polls the route table from Postgres, actively health-checks each
 // backend, and optionally terminates TLS.
