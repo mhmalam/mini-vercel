@@ -11,7 +11,7 @@ it's password-protected.
 dashboard (the video was even edited and scored by code in this repo,
 see `demo-video/`):
 
-[![mini-vercel demo video](https://img.youtube.com/vi/vKAdaMZbPIU/maxresdefault.jpg)](https://youtu.be/vKAdaMZbPIU)
+[![mini-vercel demo video](https://img.youtube.com/vi/2Pj_Sps_ALU/maxresdefault.jpg)](https://youtu.be/2Pj_Sps_ALU)
 
 I built this because my resume was wall-to-wall JavaScript and I wanted to
 actually understand the layer underneath: what happens between `git push` and
