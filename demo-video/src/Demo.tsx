@@ -3,6 +3,7 @@ import {
   AbsoluteFill,
   Audio,
   Img,
+  OffthreadVideo,
   Sequence,
   interpolate,
   spring,
@@ -64,7 +65,7 @@ const Intro: React.FC = () => {
     extrapolateRight: "clamp",
   });
   return (
-    <FadeOut from={168}>
+    <FadeOut from={108}>
       <Center>
         <Img
           src={staticFile("minivercel.svg")}
@@ -280,13 +281,22 @@ const Pipeline: React.FC = () => {
 // ---------- real-UI scenes: live screenshots of the actual platform ----------
 
 const Browser: React.FC<{
-  shot: string;
+  shot?: string;
+  media?: React.ReactNode;
   url: string;
   caption: string;
   captionAt?: number;
   zoomFrom?: number;
   zoomTo?: number;
-}> = ({ shot, url, caption, captionAt = 30, zoomFrom = 1, zoomTo = 1.05 }) => {
+}> = ({
+  shot,
+  media,
+  url,
+  caption,
+  captionAt = 30,
+  zoomFrom = 1,
+  zoomTo = 1.05,
+}) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const zoom = interpolate(frame, [0, durationInFrames], [zoomFrom, zoomTo]);
@@ -337,14 +347,17 @@ const Browser: React.FC<{
           </div>
         </div>
         <div style={{ height: 730, overflow: "hidden" }}>
-          <Img
-            src={staticFile(shot)}
+          <div
             style={{
-              width: "100%",
               transform: `scale(${zoom})`,
               transformOrigin: "top center",
             }}
-          />
+          >
+            {media ??
+              (shot ? (
+                <Img src={staticFile(shot)} style={{ width: "100%" }} />
+              ) : null)}
+          </div>
         </div>
       </div>
       <div
@@ -537,56 +550,94 @@ const Outro: React.FC = () => {
 
 // ---------- composition ----------
 
-// 120 BPM at 30fps: 1 beat = 15 frames, 1 bar = 60. Every scene cut sits on
-// a bar line, and the score (gen-music.mjs) puts an impact on each of them:
-// 180 (terminal), 360 (pipeline), 660 (card), 780 (the "live" flip), 900 (outro).
+// 120 BPM at 30fps: 1 beat = 15 frames, 1 bar = 60. Every cut sits on a bar
+// line and the score puts an impact there: 120 register, 360 deploy,
+// 600 domain, 780 the app answering, 900 malam.me, 1080 outro. The clips are
+// real screen recordings of the live dashboard; playbackRate fits each take
+// to its bar-aligned slot (register 9.63s -> 8s, deploy 10.6s -> 8s,
+// domain 7.63s -> 6s).
 export const Demo: React.FC = () => (
   <AbsoluteFill style={{ background: BG }}>
     <Audio src={staticFile("music.wav")} volume={0.8} />
-    <Sequence durationInFrames={180}>
+    <Sequence durationInFrames={120}>
       <Intro />
     </Sequence>
-    <Sequence from={180} durationInFrames={180}>
-      <Terminal />
-    </Sequence>
-    <Sequence from={360} durationInFrames={300}>
-      <Pipeline />
-    </Sequence>
-    <Sequence from={660} durationInFrames={120}>
-      <FadeOut from={112}>
+    <Sequence from={120} durationInFrames={240}>
+      <FadeOut from={232}>
         <Browser
-          shot="real-dashboard.png"
           url="deploy.malam.me"
-          caption="the real dashboard — live projects, one-click deploys"
-          captionAt={15}
+          caption="register a project — pick a repo, name becomes the subdomain"
+          captionAt={20}
+          media={
+            <OffthreadVideo
+              muted
+              src={staticFile("clip-register.webm")}
+              playbackRate={1.21}
+              style={{ width: "100%" }}
+            />
+          }
+        />
+      </FadeOut>
+    </Sequence>
+    <Sequence from={360} durationInFrames={240}>
+      <FadeOut from={232}>
+        <Browser
+          url="deploy.malam.me"
+          caption="one click: clone, build, health-check, live — logs streaming"
+          captionAt={20}
+          media={
+            <OffthreadVideo
+              muted
+              src={staticFile("clip-deploy.webm")}
+              playbackRate={1.33}
+              style={{ width: "100%" }}
+            />
+          }
+        />
+      </FadeOut>
+    </Sequence>
+    <Sequence from={600} durationInFrames={180}>
+      <FadeOut from={172}>
+        <Browser
+          url="deploy.malam.me"
+          caption="attach any domain — nginx reroutes in seconds"
+          captionAt={20}
+          media={
+            <OffthreadVideo
+              muted
+              src={staticFile("clip-domain.webm")}
+              playbackRate={1.28}
+              style={{ width: "100%" }}
+            />
+          }
         />
       </FadeOut>
     </Sequence>
     <Sequence from={780} durationInFrames={120}>
       <FadeOut from={112}>
         <Browser
-          shot="real-logs.png"
-          url="deploy.malam.me/deployments/…"
-          caption="every build streams its logs live"
-          captionAt={15}
-          zoomFrom={1.02}
-          zoomTo={1.08}
+          shot="real-app.png"
+          url="demo.malam.me"
+          caption="a URL that didn't exist a minute ago"
+          captionAt={12}
+          zoomFrom={1}
+          zoomTo={1.06}
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={900} durationInFrames={240}>
-      <FadeOut from={228}>
+    <Sequence from={900} durationInFrames={180}>
+      <FadeOut from={168}>
         <Browser
           shot="real-site.png"
           url="malam.me"
           caption="my portfolio — served by it, in production, right now"
-          captionAt={30}
+          captionAt={20}
           zoomFrom={1}
           zoomTo={1.07}
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={1140} durationInFrames={240}>
+    <Sequence from={1080} durationInFrames={180}>
       <Outro />
     </Sequence>
   </AbsoluteFill>
