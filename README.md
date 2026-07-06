@@ -7,6 +7,12 @@ platform**, not by the real Vercel. Projects deploy to
 `https://<name>.malam.me` from a dashboard at a URL I won't link because
 it's password-protected. 
 
+**Watch it work** — a 42-second demo, screen-recorded on the live
+dashboard (the video was even edited and scored by code in this repo,
+see `demo-video/`):
+
+[![mini-vercel demo video](https://img.youtube.com/vi/vKAdaMZbPIU/maxresdefault.jpg)](https://youtu.be/vKAdaMZbPIU)
+
 I built this because my resume was wall-to-wall JavaScript and I wanted to
 actually understand the layer underneath: what happens between `git push` and
 a URL that works. Turns out the answer is "a queue, a build pipeline, a
