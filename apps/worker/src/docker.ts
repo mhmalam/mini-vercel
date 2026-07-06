@@ -1,9 +1,9 @@
 import { exec, type ExecOptions } from "./exec.js";
 
 /**
- * Thin wrappers around the docker CLI. Shell-outs were chosen over dockerode
- * for the MVP: the commands are exactly what you'd run by hand, which makes
- * failures debuggable. See docs/decisions.md.
+ * Thin wrappers around the docker CLI. Shell-outs were chosen over dockerode:
+ * the commands are exactly what you'd run by hand, which makes failures
+ * debuggable in a terminal.
  */
 
 export async function dockerBuild(

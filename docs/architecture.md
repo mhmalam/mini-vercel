@@ -1,7 +1,6 @@
 # Architecture
 
-How the system fits together, as it runs in production today. The decision
-log (decisions.md) covers why things ended up this way.
+How the system fits together, as it runs in production today.
 
 ## The path of a deploy
 
