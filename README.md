@@ -5,7 +5,7 @@ runs the container, and routes a subdomain to it. And it's not a demo:
 **[malam.me](https://malam.me) — my actual portfolio — is served by this
 platform**, not by the real Vercel. Projects deploy to
 `https://<name>.malam.me` from a dashboard at a URL I won't link because
-it's password-protected and mine.
+it's password-protected. 
 
 I built this because my resume was wall-to-wall JavaScript and I wanted to
 actually understand the layer underneath: what happens between `git push` and
