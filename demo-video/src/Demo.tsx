@@ -102,20 +102,20 @@ const Terminal: React.FC = () => {
   const typed = cmd.slice(
     0,
     Math.floor(
-      interpolate(frame, [15, 55], [0, cmd.length], {
+      interpolate(frame, [8, 40], [0, cmd.length], {
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp",
       }),
     ),
   );
-  // output lines land on beats (15-frame grid)
+  // the real output of the push the banner scene reacts to
   const lines: Array<[number, string, string]> = [
-    [75, "→ GitHub: push received on main", DIM],
-    [105, "→ webhook fired at api.deploy.malam.me", DIM],
-    [135, "✓ HMAC signature verified — deployment queued", GREEN],
+    [50, "Enumerating objects: 5, done.", DIM],
+    [65, "To https://github.com/mhmalam/portfolio", DIM],
+    [80, "   31c7943..10b30ed  main -> main", GREEN],
   ];
   return (
-    <FadeOut from={168}>
+    <FadeOut from={112}>
       <Center>
         <div
           style={{
@@ -155,7 +155,7 @@ const Terminal: React.FC = () => {
                 color: DIM,
               }}
             >
-              ~/my-app
+              ~/portfolio
             </span>
           </div>
           <div
@@ -169,7 +169,7 @@ const Terminal: React.FC = () => {
             <div style={{ color: TEXT }}>
               <span style={{ color: GREEN }}>$ </span>
               {typed}
-              {frame < 70 && frame % 20 < 10 ? (
+              {frame < 45 && frame % 20 < 10 ? (
                 <span style={{ color: AMBER }}>▌</span>
               ) : null}
             </div>
@@ -591,24 +591,24 @@ export const Demo: React.FC = () => (
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={480} durationInFrames={240}>
-      <FadeOut from={232}>
+    <Sequence from={480} durationInFrames={300}>
+      <FadeOut from={292}>
         <Browser
           url="deploy.malam.me"
-          caption="one click: clone, docker build, health check — logs streaming live"
+          caption="one click: clone, docker build, health check — scroll the logs while they stream"
           captionAt={20}
           media={
             <OffthreadVideo
               muted
               src={staticFile("clip-build.webm")}
-              playbackRate={1.35}
+              playbackRate={1.54}
               style={{ width: "100%" }}
             />
           }
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={720} durationInFrames={120}>
+    <Sequence from={780} durationInFrames={120}>
       <FadeOut from={112}>
         <Browser
           url="deploy.malam.me"
@@ -625,23 +625,31 @@ export const Demo: React.FC = () => (
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={840} durationInFrames={180}>
-      <FadeOut from={172}>
+    <Sequence from={900} durationInFrames={240}>
+      <FadeOut from={232}>
         <Browser
-          shot="shot-deployed.png"
           url="folio-demo.malam.me"
-          caption="the same URL, three minutes later"
-          captionAt={18}
-          zoomFrom={1}
-          zoomTo={1.07}
+          caption="the same URL, three minutes later — my actual portfolio"
+          captionAt={20}
+          media={
+            <OffthreadVideo
+              muted
+              src={staticFile("clip-portfolio.webm")}
+              playbackRate={1.47}
+              style={{ width: "100%" }}
+            />
+          }
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={1020} durationInFrames={300}>
+    <Sequence from={1140} durationInFrames={120}>
+      <Terminal />
+    </Sequence>
+    <Sequence from={1260} durationInFrames={300}>
       <FadeOut from={292}>
         <Browser
           url="deploy.malam.me"
-          caption="$ git push — no clicks: the platform notices and rebuilds on its own"
+          caption="no clicks — the platform notices the push and rebuilds on its own"
           captionAt={20}
           media={
             <OffthreadVideo
@@ -654,7 +662,7 @@ export const Demo: React.FC = () => (
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={1320} durationInFrames={180}>
+    <Sequence from={1560} durationInFrames={180}>
       <Outro />
     </Sequence>
   </AbsoluteFill>

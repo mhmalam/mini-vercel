@@ -12,7 +12,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 
 const SR = 44100;
-const DUR = 50;
+const DUR = 58;
 const N = SR * DUR;
 const L = new Float64Array(N);
 const R = new Float64Array(N);
@@ -150,7 +150,7 @@ const impact = (t0, gain = 1) => {
 for (let bar = 0; bar < DUR / BAR; bar++) {
   const t = bar * BAR;
   const c = chordAt(t);
-  const fadeTail = t >= 44 ? 1.15 : 1; // let the outro pads breathe
+  const fadeTail = t >= 52 ? 1.15 : 1; // let the outro pads breathe
   pad(t, c.triad, BAR + 0.4, fadeTail);
   pad(t, [c.root + 12], BAR + 0.4, 0.7); // octave root warmth
 }
@@ -160,8 +160,8 @@ for (let t = 2; t < 4; t += 1) kick(t, 0.8);
 riser(2.5, 1.5, 0.9);
 impact(4); // register clip
 
-// groove sections: 4-44s
-for (let t = 4; t < 44; t += BEAT) {
+// groove sections: 4-52s
+for (let t = 4; t < 52; t += BEAT) {
   const beatInBar = Math.round(((t % BAR) / BEAT) % 4);
   kick(t, 1);
   hat(t + BEAT / 2, 0.9);
@@ -174,25 +174,27 @@ for (let t = 4; t < 44; t += BEAT) {
 
 // stabs on every bar downbeat once the pipeline scene starts (12s) ???
 // these are the accents the stage-flips cut on
-for (let t = 16; t < 44; t += BAR) {
+for (let t = 16; t < 52; t += BAR) {
   const c = chordAt(t);
-  stab(t, c.triad, t >= 28 ? 1.4 : 1);
-  if (t >= 28) stab(t + 0.0, c.triad.map((s) => s + 12), 0.8, 0.3); // opened-up layer after the reveal
+  stab(t, c.triad, t >= 30 ? 1.4 : 1);
+  if (t >= 30) stab(t + 0.0, c.triad.map((s) => s + 12), 0.8, 0.3); // opened-up layer after the reveal
 }
 
 // section transitions (each = a cut in the edit)
 riser(6.5, 1.5, 1);
 impact(8, 1.1); // register clip
 riser(14.5, 1.5, 1);
-impact(16, 1.1); // build clip
-riser(22.5, 1.5, 1);
-impact(24, 1.1); // live state
-riser(26.7, 1.3, 1.1);
-impact(28, 1.5); // the portfolio appears on the new URL — biggest moment
-riser(32.5, 1.5, 1);
-impact(34, 1.2); // git push / banner scene
-riser(42.5, 1.5, 1);
-impact(44, 1.1); // outro
+impact(16, 1.1); // build clip (log scroll)
+riser(24.5, 1.5, 1);
+impact(26, 1.1); // live state
+riser(28.7, 1.3, 1.1);
+impact(30, 1.5); // browsing the deployed portfolio — biggest moment
+riser(36.5, 1.5, 1);
+impact(38, 1.1); // git push terminal
+riser(40.7, 1.3, 1);
+impact(42, 1.2); // banner scene
+riser(50.5, 1.5, 1);
+impact(52, 1.1); // outro
 
 
 // ---------- master ----------
