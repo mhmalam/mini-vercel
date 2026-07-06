@@ -64,7 +64,7 @@ const Intro: React.FC = () => {
     extrapolateRight: "clamp",
   });
   return (
-    <FadeOut from={135}>
+    <FadeOut from={168}>
       <Center>
         <Img
           src={staticFile("minivercel.svg")}
@@ -107,13 +107,14 @@ const Terminal: React.FC = () => {
       }),
     ),
   );
+  // output lines land on beats (15-frame grid)
   const lines: Array<[number, string, string]> = [
-    [70, "→ GitHub: push received on main", DIM],
-    [95, "→ webhook fired at api.deploy.malam.me", DIM],
-    [120, "✓ HMAC signature verified — deployment queued", GREEN],
+    [75, "→ GitHub: push received on main", DIM],
+    [105, "→ webhook fired at api.deploy.malam.me", DIM],
+    [135, "✓ HMAC signature verified — deployment queued", GREEN],
   ];
   return (
-    <FadeOut from={170}>
+    <FadeOut from={168}>
       <Center>
         <div
           style={{
@@ -198,9 +199,9 @@ const STAGES = [
 
 const Pipeline: React.FC = () => {
   const frame = useCurrentFrame();
-  const per = 52; // frames per stage
+  const per = 60; // one stage per bar — flips land on the downbeat stabs
   return (
-    <FadeOut from={300}>
+    <FadeOut from={288}>
       <Center>
         <div
           style={{
@@ -262,7 +263,7 @@ const Pipeline: React.FC = () => {
             fontFamily: SANS,
             fontSize: 28,
             color: DIM,
-            opacity: interpolate(frame, [230, 255], [0, 1], {
+            opacity: interpolate(frame, [195, 220], [0, 1], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             }),
@@ -276,7 +277,92 @@ const Pipeline: React.FC = () => {
   );
 };
 
-// ---------- scene 4: dashboard card goes live ----------
+// ---------- real-UI scenes: live screenshots of the actual platform ----------
+
+const Browser: React.FC<{
+  shot: string;
+  url: string;
+  caption: string;
+  captionAt?: number;
+  zoomFrom?: number;
+  zoomTo?: number;
+}> = ({ shot, url, caption, captionAt = 30, zoomFrom = 1, zoomTo = 1.05 }) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+  const zoom = interpolate(frame, [0, durationInFrames], [zoomFrom, zoomTo]);
+  const capAt = interpolate(frame, [captionAt, captionAt + 20], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  return (
+    <Center>
+      <div
+        style={{
+          width: 1560,
+          background: PANEL,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 18,
+          overflow: "hidden",
+          boxShadow: "0 40px 100px rgba(0,0,0,.55)",
+        }}
+      >
+        <div
+          style={{
+            padding: "14px 22px",
+            borderBottom: `1px solid ${BORDER}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          {[AMBER, BORDER, BORDER].map((c, i) => (
+            <div
+              key={i}
+              style={{ width: 13, height: 13, borderRadius: 7, background: c }}
+            />
+          ))}
+          <div
+            style={{
+              marginLeft: 16,
+              fontFamily: MONO,
+              fontSize: 21,
+              color: DIM,
+              background: BG,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 8,
+              padding: "5px 18px",
+            }}
+          >
+            🔒 {url}
+          </div>
+        </div>
+        <div style={{ height: 730, overflow: "hidden" }}>
+          <Img
+            src={staticFile(shot)}
+            style={{
+              width: "100%",
+              transform: `scale(${zoom})`,
+              transformOrigin: "top center",
+            }}
+          />
+        </div>
+      </div>
+      <div
+        style={{
+          marginTop: 34,
+          fontFamily: SANS,
+          fontSize: 30,
+          color: DIM,
+          opacity: capAt,
+        }}
+      >
+        {caption}
+      </div>
+    </Center>
+  );
+};
+
+// ---------- scene 4 (legacy, unused): dashboard card goes live ----------
 
 const Card: React.FC = () => {
   const frame = useCurrentFrame();
@@ -451,22 +537,56 @@ const Outro: React.FC = () => {
 
 // ---------- composition ----------
 
+// 120 BPM at 30fps: 1 beat = 15 frames, 1 bar = 60. Every scene cut sits on
+// a bar line, and the score (gen-music.mjs) puts an impact on each of them:
+// 180 (terminal), 360 (pipeline), 660 (card), 780 (the "live" flip), 900 (outro).
 export const Demo: React.FC = () => (
   <AbsoluteFill style={{ background: BG }}>
-    <Audio src={staticFile("music.wav")} volume={0.6} />
-    <Sequence durationInFrames={155}>
+    <Audio src={staticFile("music.wav")} volume={0.8} />
+    <Sequence durationInFrames={180}>
       <Intro />
     </Sequence>
-    <Sequence from={155} durationInFrames={190}>
+    <Sequence from={180} durationInFrames={180}>
       <Terminal />
     </Sequence>
-    <Sequence from={345} durationInFrames={320}>
+    <Sequence from={360} durationInFrames={300}>
       <Pipeline />
     </Sequence>
-    <Sequence from={665} durationInFrames={235}>
-      <Card />
+    <Sequence from={660} durationInFrames={120}>
+      <FadeOut from={112}>
+        <Browser
+          shot="real-dashboard.png"
+          url="deploy.malam.me"
+          caption="the real dashboard — live projects, one-click deploys"
+          captionAt={15}
+        />
+      </FadeOut>
+    </Sequence>
+    <Sequence from={780} durationInFrames={120}>
+      <FadeOut from={112}>
+        <Browser
+          shot="real-logs.png"
+          url="deploy.malam.me/deployments/…"
+          caption="every build streams its logs live"
+          captionAt={15}
+          zoomFrom={1.02}
+          zoomTo={1.08}
+        />
+      </FadeOut>
     </Sequence>
     <Sequence from={900} durationInFrames={240}>
+      <FadeOut from={228}>
+        <Browser
+          shot="real-site.png"
+          url="malam.me"
+          caption="my portfolio — served by it, in production, right now"
+          captionAt={30}
+          zoomFrom={1}
+          zoomTo={1.07}
+        />
+      </FadeOut>
+    </Sequence>
+    <Sequence from={1140} durationInFrames={240}>
       <Outro />
     </Sequence>
   </AbsoluteFill>
