@@ -146,7 +146,7 @@ a:hover {
   letter-spacing: -0.01em;
 }
 .brand::before {
-  content: "▲ ";
+  content: "▼ ";
   font-size: 13px;
   color: var(--accent);
 }

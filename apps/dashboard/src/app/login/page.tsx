@@ -7,7 +7,7 @@ export default function LoginPage() {
     <div className="login-wrap">
       <div className="login-card">
         <h1>
-          <span className="brand-mark">▲</span> mini-vercel
+          <span className="brand-mark">▼</span> mini-vercel
         </h1>
         <p className="muted">
           This control plane can deploy and stop applications on the server —
