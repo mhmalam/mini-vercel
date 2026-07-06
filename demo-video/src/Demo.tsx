@@ -562,82 +562,99 @@ export const Demo: React.FC = () => (
     <Sequence durationInFrames={120}>
       <Intro />
     </Sequence>
-    <Sequence from={120} durationInFrames={240}>
+    <Sequence from={120} durationInFrames={120}>
+      <FadeOut from={112}>
+        <Browser
+          shot="shot-empty.png"
+          url="folio-demo.malam.me"
+          caption="this URL doesn't exist yet"
+          captionAt={12}
+          zoomFrom={1}
+          zoomTo={1.04}
+        />
+      </FadeOut>
+    </Sequence>
+    <Sequence from={240} durationInFrames={240}>
       <FadeOut from={232}>
         <Browser
           url="deploy.malam.me"
-          caption="register a project — pick a repo, name becomes the subdomain"
+          caption="register it — my real portfolio repo, straight from GitHub"
           captionAt={20}
           media={
             <OffthreadVideo
               muted
               src={staticFile("clip-register.webm")}
-              playbackRate={1.21}
+              playbackRate={1.19}
               style={{ width: "100%" }}
             />
           }
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={360} durationInFrames={240}>
+    <Sequence from={480} durationInFrames={240}>
       <FadeOut from={232}>
         <Browser
           url="deploy.malam.me"
-          caption="one click: clone, build, health-check, live — logs streaming"
+          caption="one click: clone, docker build, health check — logs streaming live"
           captionAt={20}
           media={
             <OffthreadVideo
               muted
-              src={staticFile("clip-deploy.webm")}
-              playbackRate={1.33}
+              src={staticFile("clip-build.webm")}
+              playbackRate={1.35}
               style={{ width: "100%" }}
             />
           }
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={600} durationInFrames={180}>
-      <FadeOut from={172}>
-        <Browser
-          url="deploy.malam.me"
-          caption="attach any domain — nginx reroutes in seconds"
-          captionAt={20}
-          media={
-            <OffthreadVideo
-              muted
-              src={staticFile("clip-domain.webm")}
-              playbackRate={1.28}
-              style={{ width: "100%" }}
-            />
-          }
-        />
-      </FadeOut>
-    </Sequence>
-    <Sequence from={780} durationInFrames={120}>
+    <Sequence from={720} durationInFrames={120}>
       <FadeOut from={112}>
         <Browser
-          shot="real-app.png"
-          url="demo.malam.me"
-          caption="a URL that didn't exist a minute ago"
+          url="deploy.malam.me"
+          caption="live."
           captionAt={12}
-          zoomFrom={1}
-          zoomTo={1.06}
+          media={
+            <OffthreadVideo
+              muted
+              src={staticFile("clip-live.webm")}
+              playbackRate={1.25}
+              style={{ width: "100%" }}
+            />
+          }
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={900} durationInFrames={180}>
-      <FadeOut from={168}>
+    <Sequence from={840} durationInFrames={180}>
+      <FadeOut from={172}>
         <Browser
-          shot="real-site.png"
-          url="malam.me"
-          caption="my portfolio — served by it, in production, right now"
-          captionAt={20}
+          shot="shot-deployed.png"
+          url="folio-demo.malam.me"
+          caption="the same URL, three minutes later"
+          captionAt={18}
           zoomFrom={1}
           zoomTo={1.07}
         />
       </FadeOut>
     </Sequence>
-    <Sequence from={1080} durationInFrames={180}>
+    <Sequence from={1020} durationInFrames={300}>
+      <FadeOut from={292}>
+        <Browser
+          url="deploy.malam.me"
+          caption="$ git push — no clicks: the platform notices and rebuilds on its own"
+          captionAt={20}
+          media={
+            <OffthreadVideo
+              muted
+              src={staticFile("clip-banner.webm")}
+              playbackRate={1.68}
+              style={{ width: "100%" }}
+            />
+          }
+        />
+      </FadeOut>
+    </Sequence>
+    <Sequence from={1320} durationInFrames={180}>
       <Outro />
     </Sequence>
   </AbsoluteFill>
