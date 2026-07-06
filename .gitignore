@@ -14,3 +14,4 @@ infra/nginx/conf.d/99-*.conf
 *.pem
 *.key
 demo-video/out/
+demo-video/public/music.wav

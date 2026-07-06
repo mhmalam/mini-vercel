@@ -1,9 +1,11 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   Sequence,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -440,6 +442,7 @@ const Outro: React.FC = () => {
 
 export const Demo: React.FC = () => (
   <AbsoluteFill style={{ background: BG }}>
+    <Audio src={staticFile("music.wav")} volume={0.6} />
     <Sequence durationInFrames={155}>
       <Intro />
     </Sequence>

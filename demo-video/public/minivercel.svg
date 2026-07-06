@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    .cursor { animation: blink 1.1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
+  </style>
+  <rect x="4" y="12" width="92" height="76" rx="14" fill="#14171c"/>
+  <rect x="4" y="12" width="92" height="76" rx="14" fill="none" stroke="#2a303a" stroke-width="2"/>
+  <polyline points="22,38 34,50 22,62" fill="none" stroke="#fafaf8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="55,38 67,62 43,62" fill="#f6a821"/>
+  <rect class="cursor" x="74" y="54" width="9" height="8" fill="#fafaf8"/>
+</svg>
