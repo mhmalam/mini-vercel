@@ -224,6 +224,39 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+/* ---- activity banner (a push was detected / a build is running) ---- */
+
+.activity-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 22px;
+  padding: 12px 18px;
+  background: color-mix(in srgb, var(--st-building) 9%, var(--bg-panel));
+  border: 1px solid color-mix(in srgb, var(--st-building) 40%, var(--border));
+  border-radius: 10px;
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: border-color 0.15s ease-out;
+}
+.activity-banner:hover {
+  color: inherit;
+  border-color: var(--st-building);
+}
+.activity-banner .activity-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.activity-banner .activity-cta {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--st-building);
+  font-weight: 500;
+}
+
 /* ---- stat tiles ---- */
 
 .stats {

@@ -34,9 +34,28 @@ export default async function HomePage() {
     .map((d) => new Date(d.created_at).getTime())
     .sort((a, b) => b - a)[0];
 
+  const inFlight = projects
+    .map((p, i) => ({ project: p, d: latest[i] }))
+    .filter((x) => x.d !== null && isInFlight(x.d.status));
+
   return (
     <>
       <AutoRefresh active={anyInFlight} />
+
+      {inFlight.map(({ project, d }) => (
+        <Link
+          key={d!.id}
+          className="activity-banner"
+          href={`/deployments/${d!.id}`}
+        >
+          <span className={`badge st-${d!.status}`}>{d!.status}</span>
+          <span className="activity-text">
+            <strong>{project.name}</strong>
+            {d!.commit_message ? ` — ${d!.commit_message}` : ""}
+          </span>
+          <span className="activity-cta">watch logs →</span>
+        </Link>
+      ))}
 
       <div className="stats">
         <div className="stat">

@@ -27,9 +27,22 @@ export default async function ProjectPage({
   const hasLive = deployments.some((d) => d.status === "live");
   const url = publicUrl(name);
 
+  const running = deployments.find((d) => isInFlight(d.status));
+
   return (
     <>
       <AutoRefresh active={anyInFlight} />
+
+      {running && (
+        <Link className="activity-banner" href={`/deployments/${running.id}`}>
+          <span className={`badge st-${running.status}`}>{running.status}</span>
+          <span className="activity-text">
+            <strong>{project.name}</strong>
+            {running.commit_message ? ` — ${running.commit_message}` : ""}
+          </span>
+          <span className="activity-cta">watch logs →</span>
+        </Link>
+      )}
 
       <div className="page-head">
         <div>
