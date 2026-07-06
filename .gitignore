@@ -13,3 +13,4 @@ infra/nginx/conf.d/99-*.conf
 # never, ever commit keys or certs
 *.pem
 *.key
+demo-video/out/
