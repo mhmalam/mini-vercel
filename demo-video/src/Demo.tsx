@@ -2,6 +2,7 @@ import React from "react";
 import {
   AbsoluteFill,
   Audio,
+  Img,
   Sequence,
   interpolate,
   spring,
@@ -9,7 +10,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { LogoMark, Wordmark } from "./Logo";
+import { Wordmark } from "./Logo";
 
 const BG = "#0a0a0a";
 const PANEL = "#111113";
@@ -53,8 +54,7 @@ const FadeOut: React.FC<{ from: number; children: React.ReactNode }> = ({
 const Intro: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const bar = (delay: number) =>
-    spring({ frame: frame - delay, fps, config: { damping: 14 } });
+  const pop = spring({ frame, fps, config: { damping: 13 } });
   const wordAt = interpolate(frame, [40, 60], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -66,7 +66,15 @@ const Intro: React.FC = () => {
   return (
     <FadeOut from={135}>
       <Center>
-        <LogoMark size={220} barProgress={[bar(0), bar(10), bar(20)]} />
+        <Img
+          src={staticFile("minivercel.svg")}
+          style={{
+            width: 260,
+            height: 260,
+            transform: `scale(${pop})`,
+            opacity: pop,
+          }}
+        />
         <div style={{ height: 40 }} />
         <Wordmark size={84} opacity={wordAt} />
         <div
@@ -398,7 +406,10 @@ const Outro: React.FC = () => {
   return (
     <Center>
       <div style={{ display: "flex", alignItems: "center", gap: 34 }}>
-        <LogoMark size={130} />
+        <Img
+          src={staticFile("minivercel.svg")}
+          style={{ width: 150, height: 150 }}
+        />
         <Wordmark size={72} opacity={at(0)} />
       </div>
       <div
